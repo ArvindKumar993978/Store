@@ -103,7 +103,7 @@ const Entrance = () => {
               Central Management Hub
             </div>
             <h1 className="text-[32px] md:text-[48px] font-bold leading-tight tracking-tight">
-              Welcome to <span className="text-[#006194]">Krishna Store</span>
+              Welcome to <span className="text-[#006194]"> Store</span>
             </h1>
             <p className="text-[#3f4850] text-base max-w-xl mx-auto">
               A unified business ecosystem powered by Efficient Ledger. Select your entry point to manage operations or explore the storefront.
