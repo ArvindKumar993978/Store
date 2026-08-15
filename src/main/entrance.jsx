@@ -106,7 +106,7 @@ const Entrance = () => {
               Welcome to <span className="text-[#006194]">Krishna Store</span>
             </h1>
             <p className="text-[#3f4850] text-base max-w-xl mx-auto">
-              A  business ecosystem powered by Efficient Ledger. Select your entry point to manage operations or explore the storefront.
+              A unified business ecosystem powered by Efficient Ledger. Select your entry point to manage operations or explore the storefront.
             </p>
           </div>
         </section>
