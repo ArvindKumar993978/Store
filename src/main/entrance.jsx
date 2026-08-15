@@ -108,7 +108,6 @@ const Entrance = () => {
             <p className="text-[#3f4850] text-base max-w-xl mx-auto">
               A unified business ecosystem powered by Efficient Ledger. Select your entry point to manage operations or explore the storefront.
             </p>
-            <p>test update</p>
           </div>
         </section>
 
