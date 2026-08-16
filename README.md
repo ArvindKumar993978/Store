@@ -2,6 +2,10 @@
 
 A modern and responsive **Store web application** built with React.js. This project is created to practice and demonstrate modern frontend development, reusable components, responsive UI, and project structure.
 
+
+
+🌐 **Live Demo:** https://storeforal.netlify.app/
+
 ## 🚀 Features
 
 * 🏠 Modern Home Page
