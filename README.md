@@ -133,7 +133,7 @@ This project is developed for **learning and practicing React.js, responsive UI 
 * [ ] Add checkout functionality
 * [ ] Add backend API
 * [ ] Add database integration
-* [ ] Deploy the application
+* [x] Deploy the application
 
 ## 👨‍💻 Author
 
