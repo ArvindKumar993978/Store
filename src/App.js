@@ -2,7 +2,6 @@ import { Routes, Route } from "react-router-dom";
 
 import Entrance from './main/entrance.jsx';
 import AdminDashboard from './admin/AdminDashboard.jsx';
-// import Product from './admin/ProductManagement.jsx';
 import AddNewProductPage from './admin/AddNewProductPage.jsx';
 import Sales from './admin/Sales.jsx';
 import SettingsPage from "./admin/SettingsPage.jsx";
@@ -58,6 +57,7 @@ function App() {
       <Route path="/offers" element={<ViewOffersPage />} />
     </Routes> 
     </CartProvider>
+    
   );
 }
 
