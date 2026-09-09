@@ -113,7 +113,7 @@ const Entrance = () => {
 
         {/* Portal cards */}
         <section className="max-w-6xl mx-auto w-full px-6 pb-24">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             {/* Admin card */}
             <div className="portal-card group bg-white border border-[#bfc7d2] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
               <div className="h-2 bg-[#006194]" />
@@ -196,6 +196,49 @@ const Entrance = () => {
                   className="mt-auto w-full py-4 border-2 border-[#006a61] text-[#006a61] hover:bg-[#86f2e4]/10 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
                   Go to Storefront
                   <span className="material-symbols-outlined">shopping_bag</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Staff card */}
+            <div className="portal-card group bg-white border border-[#bfc7d2] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+              <div className="h-2 bg-[#b45309]" />
+              <div className="p-8 flex flex-col h-full">
+                <div className="flex justify-between items-start mb-6">
+                  <div className="card-icon w-14 h-14 rounded-xl bg-[#fde68a] flex items-center justify-center text-[#92400e]">
+                    <span className="material-symbols-outlined text-3xl">badge</span>
+                  </div>
+                  <span className="text-xs font-bold uppercase tracking-widest text-[#92400e] bg-[#fde68a]/40 px-3 py-1 rounded-full">
+                    Staff Access
+                  </span>
+                </div>
+
+                <h2 className="text-[20px] font-semibold mb-3">Staff / Employee</h2>
+                <p className="text-[#3f4850] text-sm mb-8">
+                  View your attendance, payslips, and leave balance, or update your profile. A dedicated workspace for everyday staff tasks.
+                </p>
+
+                <div className="bg-[#eff4ff] rounded-lg p-4 mb-8 grid grid-cols-3 gap-2 border border-[#bfc7d2]/30">
+                  {[
+                    { icon: "event_available", label: "Attendance" },
+                    { icon: "payments", label: "Payslips" },
+                    { icon: "beach_access", label: "Leave" },
+                  ].map((item) => (
+                    <div
+                      key={item.icon}
+                      className="flex flex-col items-center gap-2 p-2 bg-white rounded-md shadow-sm border border-[#bfc7d2]/10"
+                    >
+                      <span className="material-symbols-outlined text-[#92400e]">{item.icon}</span>
+                      <span className="text-[10px] text-[#3f4850]">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <button
+                  onClick={() => navigate("/staff")}
+                  className="mt-auto w-full py-4 border-2 border-[#b45309] text-[#92400e] hover:bg-[#fde68a]/20 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+                  Enter Staff Portal
+                  <span className="material-symbols-outlined">arrow_forward</span>
                 </button>
               </div>
             </div>

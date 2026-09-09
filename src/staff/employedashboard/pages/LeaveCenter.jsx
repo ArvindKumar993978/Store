@@ -1,31 +1,30 @@
 import React, { useState } from "react";
-import { Plus, Coffee, Stethoscope, Umbrella, Eye, ChevronLeft, ChevronRight, X } from "../components/icons.jsx";
 import StatCard from "../components/StatCard.jsx";
 
 const REQUESTS = [
   {
     type: "Earned Leave",
-    dot: "bg-primary-container",
+    dot: "bg-[#006194]",
     dates: "Oct 12 - Oct 15",
     days: 4,
     status: "Approved",
-    statusClass: "bg-tertiary/10 text-tertiary",
+    statusClass: "bg-[#86f2e4] text-[#006f66]",
   },
   {
     type: "Sick Leave",
-    dot: "bg-error",
+    dot: "bg-[#ba1a1a]",
     dates: "Nov 02 - Nov 03",
     days: 2,
     status: "Pending",
-    statusClass: "bg-secondary/10 text-secondary",
+    statusClass: "bg-[#d7dff9] text-[#5a6278]",
   },
   {
     type: "Casual Leave",
-    dot: "bg-outline",
+    dot: "bg-[#bfc7d2]",
     dates: "Sep 05 - Sep 05",
     days: 1,
     status: "Rejected",
-    statusClass: "bg-error/10 text-error",
+    statusClass: "bg-[#ffdad6] text-[#93000a]",
   },
 ];
 
@@ -47,85 +46,85 @@ export default function LeaveCenter() {
   const [modalOpen, setModalOpen] = useState(false);
 
   return (
-    <div className="flex flex-col gap-stack-lg">
+    <div className="flex flex-col gap-8">
       {/* Page Header */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
+          <h1 className="text-[28px] md:text-[32px] font-bold text-[#191c1e]">
             Leave Center
           </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+          <p className="text-[14px] text-[#40474f] mt-1">
             Manage your time off requests and view balances.
           </p>
         </div>
         <button
           onClick={() => setModalOpen(true)}
-          className="bg-primary-container text-on-primary py-2 px-4 rounded-xl font-body-md text-body-md font-semibold flex items-center gap-2 hover:opacity-90 active:scale-95 transition-all shadow-sm"
+          className="bg-[#006194] text-white py-2 px-4 rounded-xl text-[14px] font-semibold flex items-center gap-2 hover:bg-[#004870] active:scale-95 transition-all shadow-sm"
         >
-          <Plus size={20} />
+          <span className="material-symbols-outlined text-[20px]">add</span>
           Request Leave
         </button>
       </div>
 
       {/* Balances Bento Grid */}
-      <section className="grid grid-cols-1 md:grid-cols-3 gap-gutter">
+      <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           title="Casual Leave"
-          icon={Coffee}
-          iconBg="bg-transparent"
-          iconColor="text-secondary"
+          icon="local_cafe"
+          iconBg="bg-[#d7dff9]"
+          iconColor="text-[#5a6278]"
           value={8}
           suffix="/ 12 days"
           progress={67}
-          progressColor="bg-primary-container"
-          decorativeColor="bg-secondary"
+          progressColor="bg-[#006194]"
+          decorativeColor="bg-[#006194]"
         />
         <StatCard
           title="Sick Leave"
-          icon={Stethoscope}
-          iconBg="bg-transparent"
-          iconColor="text-tertiary"
+          icon="medical_services"
+          iconBg="bg-[#ffdcc0]"
+          iconColor="text-[#894d00]"
           value={4}
           suffix="/ 10 days"
           progress={40}
-          progressColor="bg-tertiary"
-          decorativeColor="bg-tertiary"
+          progressColor="bg-[#894d00]"
+          decorativeColor="bg-[#894d00]"
         />
         <StatCard
           title="Earned Leave"
-          icon={Umbrella}
-          iconBg="bg-transparent"
-          iconColor="text-primary"
+          icon="beach_access"
+          iconBg="bg-[#86f2e4]"
+          iconColor="text-[#006f66]"
           value={15}
           suffix="/ 20 days"
           progress={75}
-          progressColor="bg-primary-fixed-dim"
-          decorativeColor="bg-primary"
+          progressColor="bg-[#006a61]"
+          decorativeColor="bg-[#006a61]"
         />
       </section>
 
       {/* Main Layout: 2 Columns */}
-      <div className="flex flex-col lg:flex-row gap-gutter">
+      <div className="flex flex-col lg:flex-row gap-6">
         {/* Left Column: Leave History */}
-        <div className="flex-1 flex flex-col gap-stack-md">
-          <h3 className="font-headline-md text-headline-md text-on-surface mb-2">Recent Requests</h3>
-          <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant overflow-hidden">
+        <div className="flex-1 flex flex-col gap-4">
+          <h3 className="text-[16px] font-semibold text-[#191c1e] mb-2">Recent Requests</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-[#bfc7d2] overflow-hidden">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="bg-surface-container-low border-b border-outline-variant">
-                    <th className="p-4 font-label-md text-label-md text-on-surface-variant">Type</th>
-                    <th className="p-4 font-label-md text-label-md text-on-surface-variant">Dates</th>
-                    <th className="p-4 font-label-md text-label-md text-on-surface-variant">Days</th>
-                    <th className="p-4 font-label-md text-label-md text-on-surface-variant">Status</th>
-                    <th className="p-4 font-label-md text-label-md text-on-surface-variant">Action</th>
+                  <tr className="bg-[#eff4ff] border-b border-[#bfc7d2]">
+                    <th className="p-4 text-[12px] text-[#40474f] uppercase tracking-wider">Type</th>
+                    <th className="p-4 text-[12px] text-[#40474f] uppercase tracking-wider">Dates</th>
+                    <th className="p-4 text-[12px] text-[#40474f] uppercase tracking-wider">Days</th>
+                    <th className="p-4 text-[12px] text-[#40474f] uppercase tracking-wider">Status</th>
+                    <th className="p-4 text-[12px] text-[#40474f] uppercase tracking-wider">Action</th>
                   </tr>
                 </thead>
-                <tbody className="font-body-md text-body-md">
+                <tbody className="text-[14px]">
                   {REQUESTS.map((req) => (
                     <tr
                       key={`${req.type}-${req.dates}`}
-                      className="border-b last:border-b-0 border-outline-variant hover:bg-surface-container-low transition-colors"
+                      className="border-b last:border-b-0 border-[#bfc7d2] hover:bg-[#eff4ff] transition-colors"
                     >
                       <td className="p-4">
                         <div className="flex items-center gap-2">
@@ -133,18 +132,18 @@ export default function LeaveCenter() {
                           {req.type}
                         </div>
                       </td>
-                      <td className="p-4 font-tabular-nums">{req.dates}</td>
-                      <td className="p-4 font-tabular-nums">{req.days}</td>
+                      <td className="p-4 tabular-nums">{req.dates}</td>
+                      <td className="p-4 tabular-nums">{req.days}</td>
                       <td className="p-4">
                         <span
-                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full font-label-md text-label-md ${req.statusClass}`}
+                          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[12px] font-medium ${req.statusClass}`}
                         >
                           {req.status}
                         </span>
                       </td>
                       <td className="p-4">
-                        <button className="text-secondary hover:text-primary transition-colors">
-                          <Eye size={18} />
+                        <button className="text-[#5a6278] hover:text-[#006194] transition-colors">
+                          <span className="material-symbols-outlined text-[18px]">visibility</span>
                         </button>
                       </td>
                     </tr>
@@ -156,38 +155,38 @@ export default function LeaveCenter() {
         </div>
 
         {/* Right Column: Calendar */}
-        <div className="w-full lg:w-80 flex flex-col gap-stack-md shrink-0">
-          <h3 className="font-headline-md text-headline-md text-on-surface mb-2">Upcoming Calendar</h3>
-          <div className="bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant p-4 flex flex-col gap-4">
+        <div className="w-full lg:w-80 flex flex-col gap-4 shrink-0">
+          <h3 className="text-[16px] font-semibold text-[#191c1e] mb-2">Upcoming Calendar</h3>
+          <div className="bg-white rounded-xl shadow-sm border border-[#bfc7d2] p-4 flex flex-col gap-4">
             <div className="flex justify-between items-center">
-              <button className="text-on-surface-variant hover:text-primary">
-                <ChevronLeft size={20} />
+              <button className="text-[#40474f] hover:text-[#006194]">
+                <span className="material-symbols-outlined text-[20px]">chevron_left</span>
               </button>
-              <span className="font-body-md text-body-md font-semibold">November 2023</span>
-              <button className="text-on-surface-variant hover:text-primary">
-                <ChevronRight size={20} />
+              <span className="text-[14px] font-semibold text-[#191c1e]">November 2023</span>
+              <button className="text-[#40474f] hover:text-[#006194]">
+                <span className="material-symbols-outlined text-[20px]">chevron_right</span>
               </button>
             </div>
-            <div className="grid grid-cols-7 gap-1 text-center font-label-md text-label-md text-on-surface-variant mb-2">
+            <div className="grid grid-cols-7 gap-1 text-center text-[12px] text-[#40474f] mb-2">
               {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
                 <div key={d}>{d}</div>
               ))}
             </div>
-            <div className="grid grid-cols-7 gap-1 text-center font-tabular-nums text-on-surface">
+            <div className="grid grid-cols-7 gap-1 text-center tabular-nums text-[#191c1e]">
               {CALENDAR_DAYS.map((d, i) => (
                 <div
                   key={i}
                   className={`py-1 rounded relative group cursor-pointer ${
                     d.muted
-                      ? "text-outline"
+                      ? "text-[#bfc7d2]"
                       : d.tag
-                      ? "bg-secondary/10 text-secondary font-bold"
-                      : "hover:bg-surface-container-high"
+                      ? "bg-[#d7dff9] text-[#5a6278] font-bold"
+                      : "hover:bg-[#e6e8ea]"
                   }`}
                 >
                   {d.day}
                   {d.tag && (
-                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-max p-1 bg-inverse-surface text-inverse-on-surface text-[10px] rounded">
+                    <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1 hidden group-hover:block w-max p-1 bg-[#191c1e] text-white text-[10px] rounded">
                       {d.tag}
                     </div>
                   )}
@@ -201,18 +200,18 @@ export default function LeaveCenter() {
       {/* Request Leave Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="bg-surface-container-lowest rounded-xl shadow-lg w-full max-w-md p-6 relative">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-md p-6 relative">
             <button
               onClick={() => setModalOpen(false)}
-              className="absolute top-4 right-4 text-on-surface-variant hover:text-primary"
+              className="absolute top-4 right-4 text-[#40474f] hover:text-[#006194]"
             >
-              <X size={20} />
+              <span className="material-symbols-outlined text-[20px]">close</span>
             </button>
-            <h3 className="font-headline-md text-headline-md text-on-surface mb-4">Request Leave</h3>
+            <h3 className="text-[16px] font-semibold text-[#191c1e] mb-4">Request Leave</h3>
             <div className="flex flex-col gap-4">
               <div>
-                <label className="input-label">Leave Type</label>
-                <select className="input-field">
+                <label className="text-[12px] text-[#40474f] mb-1 block">Leave Type</label>
+                <select className="w-full h-[44px] px-3 rounded-lg border border-[#bfc7d2] bg-white text-[14px] text-[#191c1e] focus:outline-none focus:ring-2 focus:ring-[#006194]">
                   <option>Casual Leave</option>
                   <option>Sick Leave</option>
                   <option>Earned Leave</option>
@@ -220,21 +219,30 @@ export default function LeaveCenter() {
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="input-label">Start Date</label>
-                  <input type="date" className="input-field" />
+                  <label className="text-[12px] text-[#40474f] mb-1 block">Start Date</label>
+                  <input
+                    type="date"
+                    className="w-full h-[44px] px-3 rounded-lg border border-[#bfc7d2] bg-white text-[14px] text-[#191c1e] focus:outline-none focus:ring-2 focus:ring-[#006194]"
+                  />
                 </div>
                 <div>
-                  <label className="input-label">End Date</label>
-                  <input type="date" className="input-field" />
+                  <label className="text-[12px] text-[#40474f] mb-1 block">End Date</label>
+                  <input
+                    type="date"
+                    className="w-full h-[44px] px-3 rounded-lg border border-[#bfc7d2] bg-white text-[14px] text-[#191c1e] focus:outline-none focus:ring-2 focus:ring-[#006194]"
+                  />
                 </div>
               </div>
               <div>
-                <label className="input-label">Reason</label>
-                <textarea className="input-field h-24 py-2" placeholder="Optional note for your manager" />
+                <label className="text-[12px] text-[#40474f] mb-1 block">Reason</label>
+                <textarea
+                  className="w-full py-2 px-3 h-24 rounded-lg border border-[#bfc7d2] bg-white text-[14px] text-[#191c1e] focus:outline-none focus:ring-2 focus:ring-[#006194]"
+                  placeholder="Optional note for your manager"
+                />
               </div>
               <button
                 onClick={() => setModalOpen(false)}
-                className="bg-primary-container text-on-primary py-2 rounded-lg font-body-md font-semibold hover:bg-primary transition-colors mt-2"
+                className="bg-[#006194] text-white py-2 rounded-lg text-[14px] font-semibold hover:bg-[#004870] transition-colors mt-2"
               >
                 Submit Request
               </button>

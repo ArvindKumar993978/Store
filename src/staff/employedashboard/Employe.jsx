@@ -17,8 +17,21 @@ export default function Employee() {
   const Page = PAGES[page] ?? Overview;
 
   return (
-    <AppShell page={page} onNavigate={setPage}>
-      <Page />
-    </AppShell>
+    <>
+      {/* Load fonts + icon font (same convention used across the app) */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+        .material-symbols-outlined {
+          font-family: 'Material Symbols Outlined';
+          vertical-align: middle;
+        }
+      `}</style>
+      <div className="font-sans">
+        <AppShell page={page} onNavigate={setPage}>
+          <Page />
+        </AppShell>
+      </div>
+    </>
   );
 }

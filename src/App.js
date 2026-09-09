@@ -25,6 +25,8 @@ import OrderHistoryPage  from "./customer/OrderHistoryPage.jsx";
 import CustomerSupportPage from "./customer/CustomerSupportPage.jsx";
 import ShopNowPage from "./customer/ShopNowPage.jsx";
 import ViewOffersPage from "./customer/ViewOffersPage.jsx";
+import Employee from "./staff/employedashboard/Employe.jsx";
+import EmployeeHandler from "./staff/employehandler/EmployeHandler.jsx";
 
 function App() {
   return (
@@ -55,6 +57,8 @@ function App() {
       <Route path="/help" element={<CustomerSupportPage />} />
       <Route path="/shopnow" element={<ShopNowPage />} />
       <Route path="/offers" element={<ViewOffersPage />} />
+      <Route path="/staff" element={<Employee />} />
+      <Route path="/staff-handler" element={<EmployeeHandler />} />
     </Routes> 
     </CartProvider>
     

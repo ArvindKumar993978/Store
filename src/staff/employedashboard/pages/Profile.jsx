@@ -1,5 +1,4 @@
 import React, { useState } from "react";
-import { User, Home, Landmark, HeartPulse, Pencil, Camera, Info } from "../components/icons.jsx";
 
 const PHOTO_URL =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuD4hZ-2TKl1S00wk5aRHGJKkyjasDiqmYPSW3aRAUAvzxcJ1EK12hUArZMF4Q9KdKO01KXYiOZLbvYusbTXhKzWd_tF0tLS564a9jtGnzbVS3RCPWRn5yi-3kdYcUK-OL4DEkSel9zQXsrev03y2ZIH6zIRoQo4PaZcGJqegXdC0tYLL_pz9PN6T6ehKMKQeFkgyJHOSgurHvwa5_xQ8BrecISvgYrWUU4BzTzOeQRABAqZptAuprHcow";
@@ -28,11 +27,11 @@ const initialState = {
 function Field({ label, value, onChange, disabled, type = "text", locked, mono }) {
   return (
     <div>
-      <label className="input-label">{label}</label>
+      <label className="text-[12px] text-[#40474f] mb-1 block">{label}</label>
       <input
-        className={`input-field ${mono ? "font-tabular-nums" : ""} ${
-          locked ? "bg-surface-container text-on-surface-variant cursor-not-allowed" : ""
-        }`}
+        className={`w-full h-[44px] px-3 rounded-lg border border-[#bfc7d2] bg-white text-[14px] text-[#191c1e] focus:outline-none focus:ring-2 focus:ring-[#006194] disabled:text-[#40474f] ${
+          mono ? "tabular-nums" : ""
+        } ${locked ? "bg-[#eff4ff] text-[#40474f] cursor-not-allowed" : ""}`}
         type={type}
         value={value}
         disabled={disabled || locked}
@@ -66,12 +65,12 @@ export default function Profile() {
   return (
     <div>
       {/* Header Section */}
-      <div className="flex justify-between items-end mb-gutter">
+      <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
         <div>
-          <h1 className="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-on-surface">
+          <h1 className="text-[28px] md:text-[32px] font-bold text-[#191c1e]">
             Profile Settings
           </h1>
-          <p className="font-body-md text-body-md text-on-surface-variant mt-1">
+          <p className="text-[14px] text-[#40474f] mt-1">
             Manage your personal information, bank details, and emergency contacts.
           </p>
         </div>
@@ -79,13 +78,13 @@ export default function Profile() {
           <div className="flex gap-3">
             <button
               onClick={cancel}
-              className="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-body-md hover:bg-surface-container-low transition-colors"
+              className="px-4 py-2 border border-[#bfc7d2] text-[#191c1e] rounded-lg text-[14px] hover:bg-[#eff4ff] transition-colors"
             >
               Cancel
             </button>
             <button
               onClick={save}
-              className="px-4 py-2 bg-primary-container text-on-primary rounded-lg font-body-md hover:bg-primary transition-colors active:scale-95 shadow-sm"
+              className="px-4 py-2 bg-[#006194] text-white rounded-lg text-[14px] hover:bg-[#004870] transition-colors active:scale-95 shadow-sm"
             >
               Save Changes
             </button>
@@ -93,38 +92,38 @@ export default function Profile() {
         ) : (
           <button
             onClick={startEdit}
-            className="flex items-center gap-2 px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-body-md hover:bg-surface-container-low transition-colors"
+            className="flex items-center gap-2 px-4 py-2 border border-[#bfc7d2] text-[#191c1e] rounded-lg text-[14px] hover:bg-[#eff4ff] transition-colors"
           >
-            <Pencil size={16} />
+            <span className="material-symbols-outlined text-[16px]">edit</span>
             Edit Profile
           </button>
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Column 1: Personal Info & Address */}
-        <div className="lg:col-span-2 space-y-gutter">
-          <section className="tonal-card">
+        <div className="lg:col-span-2 flex flex-col gap-6">
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-[#bfc7d2]">
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h3 className="font-headline-md text-headline-md text-on-surface flex items-center gap-2">
-                  <User size={20} className="text-primary" />
+                <h3 className="text-[16px] font-semibold text-[#191c1e] flex items-center gap-2">
+                  <span className="material-symbols-outlined text-[20px] text-[#006194]">person</span>
                   Personal Information
                 </h3>
-                <p className="text-body-md text-on-surface-variant mt-1">
+                <p className="text-[14px] text-[#40474f] mt-1">
                   Basic details and contact information.
                 </p>
               </div>
             </div>
             <div className="flex flex-col md:flex-row gap-8">
               <div className="flex flex-col items-center gap-3">
-                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-surface-container group">
+                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#eff4ff] group">
                   <img src={PHOTO_URL} alt="Profile" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center cursor-pointer transition-opacity">
-                    <Camera size={22} className="text-white" />
+                    <span className="material-symbols-outlined text-[22px] text-white">photo_camera</span>
                   </div>
                 </div>
-                <button className="text-label-md font-label-md text-primary hover:underline uppercase tracking-wider">
+                <button className="text-[12px] text-[#006194] hover:underline uppercase tracking-wider">
                   Change Photo
                 </button>
               </div>
@@ -155,9 +154,9 @@ export default function Profile() {
             </div>
           </section>
 
-          <section className="tonal-card">
-            <h3 className="font-headline-md text-headline-md text-on-surface flex items-center gap-2 mb-6">
-              <Home size={20} className="text-primary" />
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-[#bfc7d2]">
+            <h3 className="text-[16px] font-semibold text-[#191c1e] flex items-center gap-2 mb-6">
+              <span className="material-symbols-outlined text-[20px] text-[#006194]">home</span>
               Residential Address
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-4 gap-y-5">
@@ -168,9 +167,9 @@ export default function Profile() {
               <Field label="State / Province" value={draft.state} disabled={!editMode} onChange={set("state")} />
               <Field label="Postal / Zip Code" value={draft.zip} disabled={!editMode} onChange={set("zip")} />
               <div>
-                <label className="input-label">Country</label>
+                <label className="text-[12px] text-[#40474f] mb-1 block">Country</label>
                 <select
-                  className="input-field"
+                  className="w-full h-[44px] px-3 rounded-lg border border-[#bfc7d2] bg-white text-[14px] text-[#191c1e] focus:outline-none focus:ring-2 focus:ring-[#006194]"
                   disabled={!editMode}
                   value={draft.country}
                   onChange={(e) => set("country")(e.target.value)}
@@ -185,16 +184,16 @@ export default function Profile() {
         </div>
 
         {/* Column 2: Bank & Emergency */}
-        <div className="space-y-gutter">
-          <section className="tonal-card border-l-4 border-l-primary">
-            <h3 className="font-headline-md text-headline-md text-on-surface flex items-center gap-2 mb-2">
-              <Landmark size={20} className="text-primary" />
+        <div className="flex flex-col gap-6">
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-[#bfc7d2] border-l-4 border-l-[#006194]">
+            <h3 className="text-[16px] font-semibold text-[#191c1e] flex items-center gap-2 mb-2">
+              <span className="material-symbols-outlined text-[20px] text-[#006194]">account_balance</span>
               Bank Details
             </h3>
-            <p className="text-label-md text-on-surface-variant mb-6">
+            <p className="text-[12px] text-[#40474f] mb-6">
               Account used for direct salary deposits.
             </p>
-            <div className="space-y-5">
+            <div className="flex flex-col gap-5">
               <Field label="Bank Name" value={draft.bankName} disabled={!editMode} onChange={set("bankName")} />
               <Field
                 label="Account Holder Name"
@@ -218,9 +217,9 @@ export default function Profile() {
                 disabled={!editMode}
                 onChange={set("accountNumber")}
               />
-              <div className="mt-4 p-3 bg-surface-container-low rounded-lg flex gap-3 items-start border border-outline-variant/30">
-                <Info size={20} className="text-on-surface-variant flex-shrink-0" />
-                <p className="text-label-md text-on-surface-variant leading-tight">
+              <div className="mt-1 p-3 bg-[#eff4ff] rounded-lg flex gap-3 items-start border border-[#bfc7d2]/50">
+                <span className="material-symbols-outlined text-[20px] text-[#40474f] flex-shrink-0">info</span>
+                <p className="text-[12px] text-[#40474f] leading-tight">
                   Changes to bank details may take up to 1-2 pay cycles to process. Contact payroll for
                   urgent updates.
                 </p>
@@ -228,12 +227,12 @@ export default function Profile() {
             </div>
           </section>
 
-          <section className="tonal-card">
-            <h3 className="font-headline-md text-headline-md text-on-surface flex items-center gap-2 mb-6">
-              <HeartPulse size={20} className="text-error" />
+          <section className="bg-white rounded-xl p-6 shadow-sm border border-[#bfc7d2]">
+            <h3 className="text-[16px] font-semibold text-[#191c1e] flex items-center gap-2 mb-6">
+              <span className="material-symbols-outlined text-[20px] text-[#ba1a1a]">emergency</span>
               Emergency Contact
             </h3>
-            <div className="space-y-5">
+            <div className="flex flex-col gap-5">
               <Field
                 label="Contact Name"
                 value={draft.emergencyName}
