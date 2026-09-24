@@ -1,59 +1,59 @@
-import jsPDF from "jspdf";
-import autoTable from "jspdf-autotable";
-
 /**
  * Shared export helpers used across Admin / Staff pages so every
  * "Export PDF" / "Export CSV" / "Export Excel" button produces a
- * real downloadable file instead of just showing a fake spinner.
+ * real downloadable/printable file with zero external dependencies.
  */
 
 /**
- * Build and download a real PDF with a title, optional subtitle,
- * and a data table.
- *
- * @param {Object} opts
- * @param {string} opts.title       - Big heading at the top of the PDF
- * @param {string} [opts.subtitle]  - Smaller line under the title (e.g. date range)
- * @param {string[]} opts.columns   - Column headers, in order
- * @param {Array<Array<string|number>>} opts.rows - Table rows (same order as columns)
- * @param {string} opts.filename    - File name, without extension
+ * Build and print/save a clean PDF report with a title, optional subtitle,
+ * and a styled data table.
  */
-export function exportRowsAsPDF({ title, subtitle, columns, rows, filename }) {
-  const doc = new jsPDF({ orientation: columns.length > 5 ? "landscape" : "portrait" });
-
-  doc.setFontSize(18);
-  doc.setTextColor(0, 97, 148); // #006194
-  doc.text(title, 14, 18);
-
-  if (subtitle) {
-    doc.setFontSize(10);
-    doc.setTextColor(63, 72, 80); // #3f4850
-    doc.text(subtitle, 14, 25);
+export function exportRowsAsPDF({ title, subtitle, columns = [], rows = [], filename = "report" }) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    window.print();
+    return;
   }
-
-  autoTable(doc, {
-    startY: subtitle ? 30 : 24,
-    head: [columns],
-    body: rows,
-    headStyles: { fillColor: [0, 97, 148], textColor: 255, fontStyle: "bold" },
-    alternateRowStyles: { fillColor: [239, 244, 255] },
-    styles: { fontSize: 9, cellPadding: 3 },
-    margin: { left: 14, right: 14 },
-  });
-
-  const pageCount = doc.internal.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    doc.setPage(i);
-    doc.setFontSize(8);
-    doc.setTextColor(150);
-    doc.text(
-      `Generated ${new Date().toLocaleString()} - Page ${i} of ${pageCount}`,
-      14,
-      doc.internal.pageSize.getHeight() - 8
-    );
-  }
-
-  doc.save(`${filename}.pdf`);
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title || filename}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #191c1e; }
+          h1 { color: #006194; margin: 0 0 6px 0; font-size: 22px; }
+          p { color: #565e74; margin: 0 0 16px 0; font-size: 13px; }
+          table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 12px; }
+          th { background-color: #006194; color: white; text-align: left; padding: 8px 12px; border: 1px solid #006194; }
+          td { padding: 8px 12px; border: 1px solid #bfc7d2; }
+          tr:nth-child(even) { background-color: #f7f9fb; }
+          .footer { margin-top: 20px; font-size: 10px; color: #707881; text-align: right; }
+          @media print {
+            body { padding: 0; }
+          }
+        </style>
+      </head>
+      <body>
+        <h1>${title || "Report"}</h1>
+        ${subtitle ? `<p>${subtitle}</p>` : ""}
+        <table>
+          <thead>
+            <tr>${columns.map((c) => `<th>${c}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${rows.map((r) => `<tr>${r.map((cell) => `<td>${cell}</td>`).join("")}</tr>`).join("")}
+          </tbody>
+        </table>
+        <div class="footer">Generated on ${new Date().toLocaleString()} • Efficient Ledger</div>
+        <script>
+          window.onload = function() { window.print(); };
+        </script>
+      </body>
+    </html>
+  `;
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
 }
 
 /** Escape a single CSV cell value. */
@@ -67,15 +67,11 @@ function csvCell(value) {
 
 /**
  * Build and download a real CSV file (openable directly in Excel).
- *
- * @param {string[]} columns
- * @param {Array<Array<string|number>>} rows
- * @param {string} filename - without extension
  */
-export function exportRowsAsCSV(columns, rows, filename) {
+export function exportRowsAsCSV(columns = [], rows = [], filename = "export") {
   const lines = [columns.map(csvCell).join(",")];
   rows.forEach((row) => lines.push(row.map(csvCell).join(",")));
-  // Prefix with a BOM so Excel opens UTF-8 (₹, etc.) correctly.
+  // Prefix with UTF-8 BOM so Excel opens Hindi, Rupee ₹, etc. correctly
   const blob = new Blob(["\uFEFF" + lines.join("\r\n")], { type: "text/csv;charset=utf-8;" });
   downloadBlob(blob, `${filename}.csv`);
 }
@@ -93,40 +89,43 @@ export function downloadBlob(blob, filename) {
 }
 
 /**
- * Build and download a simple "record sheet" style PDF for a single
- * entity (e.g. one customer's profile) instead of a table — a title,
- * then label/value pairs.
- *
- * @param {Object} opts
- * @param {string} opts.title
- * @param {string} [opts.subtitle]
- * @param {Array<{label: string, value: string}>} opts.fields
- * @param {string} opts.filename
+ * Build and print/save a single record sheet (e.g. customer profile or invoice).
  */
-export function exportRecordAsPDF({ title, subtitle, fields, filename }) {
-  const doc = new jsPDF();
-
-  doc.setFontSize(18);
-  doc.setTextColor(0, 97, 148);
-  doc.text(title, 14, 18);
-
-  if (subtitle) {
-    doc.setFontSize(10);
-    doc.setTextColor(63, 72, 80);
-    doc.text(subtitle, 14, 25);
+export function exportRecordAsPDF({ title, subtitle, fields = [], filename = "record" }) {
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    window.print();
+    return;
   }
-
-  autoTable(doc, {
-    startY: subtitle ? 32 : 26,
-    body: fields.map((f) => [f.label, f.value]),
-    theme: "plain",
-    styles: { fontSize: 10, cellPadding: 3 },
-    columnStyles: {
-      0: { fontStyle: "bold", textColor: [63, 72, 80], cellWidth: 55 },
-      1: { textColor: [11, 28, 48] },
-    },
-    margin: { left: 14, right: 14 },
-  });
-
-  doc.save(`${filename}.pdf`);
+  const html = `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <title>${title || filename}</title>
+        <style>
+          body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; color: #191c1e; }
+          h1 { color: #006194; margin: 0 0 6px 0; font-size: 22px; }
+          p { color: #565e74; margin: 0 0 16px 0; font-size: 13px; }
+          .grid { display: grid; grid-template-columns: 140px 1fr; gap: 8px 16px; margin-top: 16px; font-size: 13px; }
+          .label { font-weight: 600; color: #565e74; }
+          .val { color: #191c1e; }
+          .footer { margin-top: 30px; font-size: 10px; color: #707881; }
+        </style>
+      </head>
+      <body>
+        <h1>${title || "Record"}</h1>
+        ${subtitle ? `<p>${subtitle}</p>` : ""}
+        <div class="grid">
+          ${fields.map((f) => `<div class="label">${f.label}:</div><div class="val">${f.value}</div>`).join("")}
+        </div>
+        <div class="footer">Generated on ${new Date().toLocaleString()} • Efficient Ledger</div>
+        <script>
+          window.onload = function() { window.print(); };
+        </script>
+      </body>
+    </html>
+  `;
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
 }

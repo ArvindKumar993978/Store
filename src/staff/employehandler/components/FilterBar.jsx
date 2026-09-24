@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-const FilterBar = () => {
+const FilterBar = ({ onFilter, onClear }) => {
   const [dateRange, setDateRange] = useState("Oct 12, 2023 - Oct 12, 2023");
   const [department, setDepartment] = useState("All Departments");
   const [status, setStatus] = useState("All Statuses");
@@ -9,6 +9,11 @@ const FilterBar = () => {
     setDateRange("");
     setDepartment("All Departments");
     setStatus("All Statuses");
+    onClear?.();
+  };
+
+  const handleApply = () => {
+    onFilter?.({ dateRange, department, status });
   };
 
   return (
@@ -37,10 +42,10 @@ const FilterBar = () => {
         <select
           value={department}
           onChange={(e) => setDepartment(e.target.value)}
-          className="w-full h-[40px] px-[12px] bg-[#f2f4f6] border border-[#bfc7d2] rounded-[8px] text-[14px] text-[#191c1e] focus:ring-2 focus:ring-[#004870] focus:border-transparent appearance-none outline-none"
+          className="w-full h-[40px] px-[12px] bg-[#f2f4f6] border border-[#bfc7d2] rounded-[8px] text-[14px] text-[#191c1e] focus:ring-2 focus:ring-[#004870] focus:border-transparent outline-none cursor-pointer"
         >
-          {["All Departments", "Sales", "Engineering", "HR"].map((d) => (
-            <option key={d}>{d}</option>
+          {["All Departments", "Sales", "Engineering", "HR", "Operations"].map((d) => (
+            <option key={d} value={d}>{d}</option>
           ))}
         </select>
       </div>
@@ -52,10 +57,10 @@ const FilterBar = () => {
         <select
           value={status}
           onChange={(e) => setStatus(e.target.value)}
-          className="w-full h-[40px] px-[12px] bg-[#f2f4f6] border border-[#bfc7d2] rounded-[8px] text-[14px] text-[#191c1e] focus:ring-2 focus:ring-[#004870] focus:border-transparent appearance-none outline-none"
+          className="w-full h-[40px] px-[12px] bg-[#f2f4f6] border border-[#bfc7d2] rounded-[8px] text-[14px] text-[#191c1e] focus:ring-2 focus:ring-[#004870] focus:border-transparent outline-none cursor-pointer"
         >
           {["All Statuses", "Present", "Late", "Absent", "On Leave"].map((s) => (
-            <option key={s}>{s}</option>
+            <option key={s} value={s}>{s}</option>
           ))}
         </select>
       </div>
@@ -63,11 +68,14 @@ const FilterBar = () => {
       <div className="w-full md:w-auto flex gap-[8px]">
         <button
           onClick={handleClear}
-          className="h-[40px] px-[16px] bg-[#f2f4f6] border border-[#bfc7d2] rounded-[8px] text-[12px] font-semibold tracking-[0.05em] text-[#191c1e] hover:bg-[#e0e3e5] transition-colors active:scale-95"
+          className="h-[40px] px-[16px] bg-[#f2f4f6] border border-[#bfc7d2] rounded-[8px] text-[12px] font-semibold tracking-[0.05em] text-[#191c1e] hover:bg-[#e0e3e5] transition-colors active:scale-95 cursor-pointer"
         >
           Clear
         </button>
-        <button className="h-[40px] px-[24px] bg-[#006194] text-white rounded-[8px] text-[12px] font-semibold tracking-[0.05em] hover:bg-[#076396] transition-colors active:scale-95">
+        <button
+          onClick={handleApply}
+          className="h-[40px] px-[24px] bg-[#006194] text-white rounded-[8px] text-[12px] font-semibold tracking-[0.05em] hover:bg-[#076396] transition-colors active:scale-95 cursor-pointer shadow-sm"
+        >
           Apply
         </button>
       </div>

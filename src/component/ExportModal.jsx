@@ -259,9 +259,11 @@ export default function ExportModal({ isOpen, onClose }) {
             Cancel
           </button>
           <button
-            onClick={handleGenerate}
-            onClick={() => navigate("/export-progress")}
-            className="px-8 py-2 bg-[#006194] text-white font-semibold text-sm rounded-lg hover:opacity-90 transition-all flex items-center gap-2 shadow-lg active:scale-95"
+            onClick={() => {
+              handleGenerate();
+              navigate("/export-progress");
+            }}
+            className="px-8 py-2 bg-[#006194] text-white font-semibold text-sm rounded-lg hover:opacity-90 transition-all flex items-center gap-2 shadow-lg active:scale-95 cursor-pointer"
           >
             <span>Generate Report</span>
             <span className="material-symbols-outlined text-[18px]">rocket_launch</span>
