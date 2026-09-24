@@ -54,9 +54,86 @@ const salaryHistory = [
 
 const StaffProfile = ({ onNavigate }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [notesList, setNotesList] = useState(notes);
+  const [editModal, setEditModal] = useState(false);
+  const [messageModal, setMessageModal] = useState(false);
+  const [noteModal, setNoteModal] = useState(false);
+  const [toast, setToast] = useState(null);
+  const [month, setMonth] = useState("October 2023");
+
+  // Profile editable info
+  const [info, setInfo] = useState({
+    name: "Eleanor Vance",
+    role: "Senior Floor Manager",
+    email: "e.vance@company.com",
+    phone: "+1 (555) 019-8372",
+    address: "428 Park Avenue, Apt 4B, Metropolis, NY 10022",
+    emergency: "Mark Vance (Spouse) - +1 (555) 832-9011",
+  });
+
+  // Modal forms
+  const [msgText, setMsgText] = useState("");
+  const [newNoteTitle, setNewNoteTitle] = useState("");
+  const [newNoteBody, setNewNoteBody] = useState("");
+
+  const handleExportSalary = () => {
+    const headers = ["Pay Period", "Base Salary", "Overtime/Bonus", "Net Payout", "Status"];
+    const rows = salaryHistory.map((s) => [
+      s.period,
+      `"${s.base}"`,
+      `"${s.bonus}"`,
+      `"${s.net}"`,
+      s.status,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `salary_history_eleanor_vance.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    setMessageModal(false);
+    setMsgText("");
+    setToast("Message sent to Eleanor Vance successfully.");
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handleAddNote = (e) => {
+    e.preventDefault();
+    if (!newNoteTitle || !newNoteBody) return;
+    setNotesList([
+      {
+        title: newNoteTitle,
+        date: "Today",
+        body: newNoteBody,
+        accent: "#004870",
+      },
+      ...notesList,
+    ]);
+    setNoteModal(false);
+    setNewNoteTitle("");
+    setNewNoteBody("");
+    setToast("Performance note added.");
+    setTimeout(() => setToast(null), 3000);
+  };
 
   return (
-    <div className="flex min-h-screen w-full bg-[#f7f9fb] text-[#191c1e]">
+    <div className="flex min-h-screen w-full bg-[#f7f9fb] text-[#191c1e] relative">
+      {/* Toast Alert */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-[#004870] text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-fade-in">
+          <span className="material-symbols-outlined text-[#86f2e4]">check_circle</span>
+          <span className="text-[14px] font-medium">{toast}</span>
+        </div>
+      )}
+
       <Sidebar activeItem="staff" onNavigate={onNavigate} subtitle="Admin Terminal" />
 
       <div className="flex-1 flex flex-col md:ml-[280px] min-h-screen">
@@ -75,18 +152,24 @@ const StaffProfile = ({ onNavigate }) => {
                   Staff Profiles
                 </button>
                 <span className="material-symbols-outlined text-[16px]">chevron_right</span>
-                <span className="text-[#191c1e] font-medium">Eleanor Vance</span>
+                <span className="text-[#191c1e] font-medium">{info.name}</span>
               </div>
               <h2 className="text-[24px] md:text-[32px] leading-[32px] md:leading-[40px] font-bold text-[#191c1e] tracking-[-0.01em] md:tracking-[-0.02em]">
                 Staff Profile
               </h2>
             </div>
             <div className="flex items-center gap-[12px]">
-              <button className="px-[16px] py-[8px] border border-[#bfc7d2] text-[#191c1e] text-[14px] rounded-[8px] hover:bg-[#f2f4f6] transition-colors flex items-center gap-2">
+              <button 
+                onClick={() => setEditModal(true)}
+                className="px-[16px] py-[8px] border border-[#bfc7d2] text-[#191c1e] text-[14px] rounded-[8px] hover:bg-[#f2f4f6] transition-colors flex items-center gap-2 active:scale-95"
+              >
                 <span className="material-symbols-outlined text-[18px]">edit</span>
                 Edit Profile
               </button>
-              <button className="px-[16px] py-[8px] bg-[#004870] text-white text-[14px] rounded-[8px] hover:bg-[#006194] active:scale-95 transition-all shadow-sm flex items-center gap-2">
+              <button 
+                onClick={() => setMessageModal(true)}
+                className="px-[16px] py-[8px] bg-[#004870] text-white text-[14px] rounded-[8px] hover:bg-[#006194] active:scale-95 transition-all shadow-sm flex items-center gap-2"
+              >
                 <span className="material-symbols-outlined text-[18px]">mail</span>
                 Message
               </button>
@@ -192,11 +275,17 @@ const StaffProfile = ({ onNavigate }) => {
                   Attendance Record
                 </h3>
                 <div className="flex items-center gap-2 text-[#40474f]">
-                  <button className="p-1 hover:bg-[#f2f4f6] rounded-[6px] transition-colors">
+                  <button 
+                    onClick={() => setMonth(month === "October 2023" ? "September 2023" : "October 2023")}
+                    className="p-1 hover:bg-[#f2f4f6] rounded-[6px] transition-colors"
+                  >
                     <span className="material-symbols-outlined text-[20px]">chevron_left</span>
                   </button>
-                  <span className="text-[12px] font-medium">October 2023</span>
-                  <button className="p-1 hover:bg-[#f2f4f6] rounded-[6px] transition-colors">
+                  <span className="text-[12px] font-medium">{month}</span>
+                  <button 
+                    onClick={() => setMonth(month === "October 2023" ? "November 2023" : "October 2023")}
+                    className="p-1 hover:bg-[#f2f4f6] rounded-[6px] transition-colors"
+                  >
                     <span className="material-symbols-outlined text-[20px]">chevron_right</span>
                   </button>
                 </div>
@@ -246,13 +335,16 @@ const StaffProfile = ({ onNavigate }) => {
                   <span className="material-symbols-outlined text-[#004870]">rate_review</span>
                   Performance Notes
                 </h3>
-                <button className="text-[#004870] hover:opacity-80 transition-opacity text-[12px] font-semibold flex items-center gap-1">
+                <button 
+                  onClick={() => setNoteModal(true)}
+                  className="text-[#004870] hover:opacity-80 transition-opacity text-[12px] font-semibold flex items-center gap-1"
+                >
                   <span className="material-symbols-outlined text-[16px]">add</span> Add Note
                 </button>
               </div>
               <div className="flex-1 overflow-y-auto pr-2 space-y-[16px] max-h-[250px]">
-                {notes.map((n) => (
-                  <div key={n.title} className="border-l-4 pl-[16px] py-1" style={{ borderColor: n.accent }}>
+                {notesList.map((n, i) => (
+                  <div key={i} className="border-l-4 pl-[16px] py-1" style={{ borderColor: n.accent }}>
                     <div className="flex justify-between items-start mb-1 gap-[8px]">
                       <h4 className="text-[14px] font-semibold text-[#191c1e]">{n.title}</h4>
                       <span className="text-[12px] text-[#40474f] whitespace-nowrap">{n.date}</span>
@@ -271,7 +363,11 @@ const StaffProfile = ({ onNavigate }) => {
                 <span className="material-symbols-outlined text-[#004870]">account_balance_wallet</span>
                 Salary &amp; Compensation History
               </h3>
-              <button className="text-[#40474f] hover:text-[#004870] transition-colors">
+              <button 
+                onClick={handleExportSalary}
+                className="text-[#40474f] hover:text-[#004870] p-1.5 rounded-lg hover:bg-[#f2f4f6] transition-colors"
+                title="Download CSV"
+              >
                 <span className="material-symbols-outlined">download</span>
               </button>
             </div>
@@ -306,6 +402,172 @@ const StaffProfile = ({ onNavigate }) => {
           </div>
         </main>
       </div>
+
+      {/* Edit Profile Modal */}
+      {editModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative">
+            <div className="flex justify-between items-center pb-3 border-b border-[#bfc7d2]">
+              <h3 className="text-[18px] font-bold text-[#191c1e]">Edit Profile Details</h3>
+              <button onClick={() => setEditModal(false)} className="text-[#707881]">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <div className="py-4 space-y-3 text-[13px]">
+              <div>
+                <label className="text-[#40474f] block font-medium mb-1">Full Name</label>
+                <input
+                  type="text"
+                  value={info.name}
+                  onChange={(e) => setInfo({ ...info, name: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg outline-none focus:ring-2 focus:ring-[#004870]"
+                />
+              </div>
+              <div>
+                <label className="text-[#40474f] block font-medium mb-1">Job Title</label>
+                <input
+                  type="text"
+                  value={info.role}
+                  onChange={(e) => setInfo({ ...info, role: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg outline-none focus:ring-2 focus:ring-[#004870]"
+                />
+              </div>
+              <div>
+                <label className="text-[#40474f] block font-medium mb-1">Email</label>
+                <input
+                  type="email"
+                  value={info.email}
+                  onChange={(e) => setInfo({ ...info, email: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg outline-none focus:ring-2 focus:ring-[#004870]"
+                />
+              </div>
+              <div>
+                <label className="text-[#40474f] block font-medium mb-1">Phone</label>
+                <input
+                  type="text"
+                  value={info.phone}
+                  onChange={(e) => setInfo({ ...info, phone: e.target.value })}
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg outline-none focus:ring-2 focus:ring-[#004870]"
+                />
+              </div>
+            </div>
+            <div className="pt-3 border-t border-[#bfc7d2] flex justify-end gap-2">
+              <button
+                onClick={() => setEditModal(false)}
+                className="px-4 py-2 border border-[#bfc7d2] rounded-lg text-[13px] hover:bg-[#f2f4f6]"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  setEditModal(false);
+                  setToast("Profile details updated!");
+                  setTimeout(() => setToast(null), 3000);
+                }}
+                className="px-4 py-2 bg-[#004870] text-white rounded-lg text-[13px] font-semibold hover:bg-[#006194]"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Message Modal */}
+      {messageModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative">
+            <div className="flex justify-between items-center pb-3 border-b border-[#bfc7d2]">
+              <h3 className="text-[18px] font-bold text-[#191c1e]">Send Message to {info.name}</h3>
+              <button onClick={() => setMessageModal(false)} className="text-[#707881]">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSendMessage} className="py-4 space-y-3 text-[13px]">
+              <div>
+                <label className="text-[#40474f] block font-medium mb-1">Message Content</label>
+                <textarea
+                  required
+                  rows={4}
+                  value={msgText}
+                  onChange={(e) => setMsgText(e.target.value)}
+                  placeholder="Type your announcement or memo..."
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg outline-none focus:ring-2 focus:ring-[#004870]"
+                />
+              </div>
+              <div className="pt-2 border-t border-[#bfc7d2] flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setMessageModal(false)}
+                  className="px-4 py-2 border border-[#bfc7d2] rounded-lg text-[13px] hover:bg-[#f2f4f6]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#004870] text-white rounded-lg text-[13px] font-semibold hover:bg-[#006194] flex items-center gap-1.5"
+                >
+                  <span className="material-symbols-outlined text-[16px]">send</span>
+                  Send Message
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Performance Note Modal */}
+      {noteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md relative">
+            <div className="flex justify-between items-center pb-3 border-b border-[#bfc7d2]">
+              <h3 className="text-[18px] font-bold text-[#191c1e]">Add Performance Note</h3>
+              <button onClick={() => setNoteModal(false)} className="text-[#707881]">
+                <span className="material-symbols-outlined text-[18px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleAddNote} className="py-4 space-y-3 text-[13px]">
+              <div>
+                <label className="text-[#40474f] block font-medium mb-1">Title / Milestone</label>
+                <input
+                  required
+                  type="text"
+                  value={newNoteTitle}
+                  onChange={(e) => setNewNoteTitle(e.target.value)}
+                  placeholder="e.g. Q4 Target Achievement"
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg outline-none focus:ring-2 focus:ring-[#004870]"
+                />
+              </div>
+              <div>
+                <label className="text-[#40474f] block font-medium mb-1">Details</label>
+                <textarea
+                  required
+                  rows={3}
+                  value={newNoteBody}
+                  onChange={(e) => setNewNoteBody(e.target.value)}
+                  placeholder="Describe employee performance note..."
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg outline-none focus:ring-2 focus:ring-[#004870]"
+                />
+              </div>
+              <div className="pt-2 border-t border-[#bfc7d2] flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNoteModal(false)}
+                  className="px-4 py-2 border border-[#bfc7d2] rounded-lg text-[13px] hover:bg-[#f2f4f6]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-[#004870] text-white rounded-lg text-[13px] font-semibold hover:bg-[#006194]"
+                >
+                  Save Note
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {mobileMenuOpen && (
         <div

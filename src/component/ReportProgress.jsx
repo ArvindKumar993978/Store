@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 /*
   ReportProgress
@@ -20,12 +21,13 @@ const RADIUS = 90;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 export default function ReportProgress({
-  isOpen,
+  isOpen = true,
   itemsAnalyzed = 1284,
   targetFormat = "Excel (.xlsx)",
   onCancel,
   onComplete,
 }) {
+  const navigate = useNavigate();
   const [progress, setProgress] = useState(48);
   const [timeRemaining, setTimeRemaining] = useState(12);
   const completedRef = useRef(false);
@@ -58,7 +60,22 @@ export default function ReportProgress({
     if (progress >= 99 && !completedRef.current) {
       completedRef.current = true;
       const timeout = setTimeout(() => {
-        onComplete && onComplete();
+        if (onComplete) {
+          onComplete();
+        } else {
+          try {
+            const blob = new Blob(["Report export completed successfully."], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = `Generated_Report_${new Date().toISOString().slice(0, 10)}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+          } catch (e) {
+            console.error(e);
+          }
+          navigate("/reports");
+        }
       }, 900);
       return () => clearTimeout(timeout);
     }
@@ -68,8 +85,11 @@ export default function ReportProgress({
   if (!isOpen) return null;
 
   const handleCancel = () => {
-    onCancel && onCancel();
-    
+    if (onCancel) {
+      onCancel();
+    } else {
+      navigate(-1);
+    }
   };
 
   const offset = CIRCUMFERENCE - (progress / 100) * CIRCUMFERENCE;
@@ -150,7 +170,7 @@ export default function ReportProgress({
 
         {/* Cancel button */}
         <button
-          onClick={onCancel}
+          onClick={handleCancel}
           className="group flex items-center justify-center gap-2 w-full py-3 px-4 text-[#ba1a1a] hover:bg-[#ffdad6]/40 border border-[#ba1a1a]/20 rounded-lg transition-all active:scale-95"
         >
           <span className="material-symbols-outlined group-hover:rotate-90 transition-transform">

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 // import ProductsTopNav from "./ProductsTopNav";
 import Sidebar from "../component/Sidebar";
+import ExportModal from "../component/ExportModal";
 
 import Topnav from "../component/Topnav";
 
@@ -126,6 +127,7 @@ export default function Product() {
   // ---- Delete confirmation flow ----
   const [productToDelete, setProductToDelete] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showExportModal, setShowExportModal] = useState(false);
 
   const openModal = (product) => {
     setProductToDelete(product);
@@ -183,7 +185,9 @@ export default function Product() {
                   Grid View
                 </button>
               </div>
-              <button className="flex items-center gap-1 px-6 py-2 bg-white border border-[#bfc7d2] rounded-lg text-sm font-semibold text-[#3f4850] hover:bg-[#eff4ff] transition-colors">
+              <button
+                onClick={() => setShowExportModal(true)}
+                className="flex items-center gap-1 px-6 py-2 bg-white border border-[#bfc7d2] rounded-lg text-sm font-semibold text-[#3f4850] hover:bg-[#eff4ff] transition-colors">
                 <span className="material-symbols-outlined">file_download</span>
                 Export
               </button>
@@ -407,6 +411,12 @@ export default function Product() {
           </div>
         </div>
       )}
+
+      <ExportModal
+        isOpen={showExportModal}
+        onClose={() => setShowExportModal(false)}
+        products={filteredProducts}
+      />
     </div>
   );
 }

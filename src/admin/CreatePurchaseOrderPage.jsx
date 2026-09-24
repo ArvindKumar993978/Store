@@ -1,51 +1,10 @@
 import React, { useMemo, useState } from "react";
-import PurchaseOrderSidebar from "../component/PurchaseOrderSidebar (1)";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar.jsx";
-
-/*
-  EASY-TO-EDIT VERSION
-  --------------------
-  Colors are kept EXACTLY as the original design (same hex values,
-  just written as Tailwind arbitrary values instead of custom
-  theme names), so nothing visually changes:
-
-    #006194  -> primary
-    #007bb9  -> primary-container
-    #cce5ff  -> primary-fixed
-    #004b73  -> on-primary-fixed-variant
-    #565e74  -> secondary
-    #dae2fd  -> secondary-container / secondary-fixed
-    #5c647a  -> on-secondary-container
-    #006947  -> tertiary
-    #00855b  -> tertiary-container
-    #ba1a1a  -> error
-    #ffdad6  -> error-container
-    #93000a  -> on-error-container
-    #f7f9fb  -> surface / surface-bright
-    #ffffff  -> surface-container-lowest / on-primary
-    #f2f4f6  -> surface-container-low
-    #eceef0  -> surface-container
-    #e6e8ea  -> surface-container-high
-    #e0e3e5  -> surface-container-highest
-    #707881  -> outline
-    #bfc7d2  -> outline-variant
-    #191c1e  -> on-surface
-    #3f4850  -> on-surface-variant
-
-  NOTE: This page has no separate top navbar in the original design —
-  only a sidebar plus a breadcrumb/title header inside the main
-  content. Per your request the sidebar is its own component; the
-  breadcrumb header stays here since it was never a standalone navbar.
-
-  DATA:
-  LINE_ITEMS below feeds the table. Quantity inputs are live state —
-  Subtotal, Tax (GST 18%), and Total Payable all recalculate
-  automatically as you change quantities or delete rows.
-*/
 
 const GST_RATE = 0.18;
 
-const LINE_ITEMS = [
+const INITIAL_LINE_ITEMS = [
   {
     id: 1,
     name: "Logitech MX Master 3S",
@@ -70,11 +29,56 @@ const LINE_ITEMS = [
   },
 ];
 
-const SUPPLIER_OPTIONS = ["Select a supplier", "Global Electronics Ltd.", "Standard Stationery Hub", "Prime Textiles Inc."];
+const AVAILABLE_CATALOG = [
+  {
+    id: 3,
+    name: "Whole Milk - 1L (Bulk Crate)",
+    sku: "SKU: MK-10293",
+    stockLabel: "Low (12)",
+    stockStyle: { bg: "#ffdad6", text: "#93000a" },
+    unitPrice: 40.0,
+    qty: 50,
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCrYvrSJ7OcbW0gUMWUZhjsLn4Pukj0UAun_Q0tyy8ObC0B4wHpGflnCEa4tsSp497gGwtn1sDQeZ-Vw20_QRCWGl5N3f2_otUNzNAa1jJH7GNG9Nt4rqxc8GeqYLQbOvkUSsvqNtNb4L7GXkE9VbD591Dt4h4oqdsaLfVr118UO_UWOfiIn96NFzFsXO8fVFionsDy1gN94cTzEXCZ64xGXyslRYLr7YKdH6Lrctay2TGuf29M6N65JNa1zl0U9Q3QIgunWh3vzzcL",
+  },
+  {
+    id: 4,
+    name: "Honey Loops Cereal 500g",
+    sku: "SKU: SN-44582",
+    stockLabel: "24",
+    stockStyle: { bg: "#e0e3e5", text: "#3f4850" },
+    unitPrice: 150.0,
+    qty: 20,
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD75B0M5a_k3dNhXaVz3cSNSoUgZgmqeaLYFxo_kaDMrvuYRRgsNLsYGny-lQYAUl5J-EWqKJs33b3yKxrU5MOZqiZcHhQmhJtpDjZo87KCl4mzkSQspLPNaC6gL2UwrLDpTph6i6Z4ahPvm7xPKzVS15ScZkuzyci3w_TBdWRNaTmcqE68RV8aY1jDbcW2Y83RuZj_74I5mr1dn3hrqfVSqWbMVUMtN1uyjy3UbCCNW_SaV5FWc5Atti8Wk7dbvtLx54vVku8dE0Ri",
+  },
+  {
+    id: 5,
+    name: "Premium Basmati Rice 25kg",
+    sku: "SKU: ST-11223",
+    stockLabel: "8",
+    stockStyle: { bg: "#ffdad6", text: "#93000a" },
+    unitPrice: 1800.0,
+    qty: 15,
+    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC1yFWaAXcESGoqnqiUO8q00kspWzvzcj33bcf8VG_VyINE5Guojx3DsxfykrmlLX5CO0JIwe9KgQba-_3rFTfGB08RaWlbYR4Ef6jDsUbMYOHKYPuE-_eoS9ktU3Xw2RgreUYxXuSjElqFWu_ll3NoKUI7KCyBT_KHS7leFlPLDcV-x3iZ5CkADTI67V7sTzxduwHGa-sKCFZmjB0aE4cfcqt0ExBck1AtGjx6W7aICGDnOOKAAc1YKdJ8lFcWfOy5uORKCuf9ChbS",
+  },
+];
 
-export default function PurchaseOrderPage() {
-  const [items, setItems] = useState(LINE_ITEMS);
+const SUPPLIER_OPTIONS = [
+  "Select a supplier",
+  "Global Electronics Ltd.",
+  "Standard Stationery Hub",
+  "Prime Textiles Inc.",
+  "Farm Fresh Direct",
+];
+
+export default function CreatePurchaseOrderPage() {
+  const navigate = useNavigate();
+  const [items, setItems] = useState(INITIAL_LINE_ITEMS);
+  const [supplier, setSupplier] = useState("Global Electronics Ltd.");
+  const [deliveryDate, setDeliveryDate] = useState("2024-11-15");
   const [shippingMethod, setShippingMethod] = useState("standard");
+  const [notes, setNotes] = useState("");
+  const [showCatalogModal, setShowCatalogModal] = useState(false);
+  const [poGenerated, setPoGenerated] = useState(null);
 
   const updateQty = (id, value) => {
     const qty = Math.max(0, Number(value) || 0);
@@ -85,12 +89,37 @@ export default function PurchaseOrderPage() {
     setItems((prev) => prev.filter((item) => item.id !== id));
   };
 
+  const addItemToPO = (product) => {
+    setItems((prev) => {
+      const exists = prev.find((i) => i.id === product.id);
+      if (exists) {
+        return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + product.qty } : i));
+      }
+      return [...prev, { ...product }];
+    });
+    setShowCatalogModal(false);
+  };
+
   const totals = useMemo(() => {
     const subtotal = items.reduce((sum, item) => sum + item.unitPrice * item.qty, 0);
     const tax = subtotal * GST_RATE;
     const total = subtotal + tax;
     return { subtotal, tax, total };
   }, [items]);
+
+  const handleGeneratePO = () => {
+    if (items.length === 0) {
+      alert("Please add at least one line item to generate a Purchase Order.");
+      return;
+    }
+    const poNum = `PO-${Math.floor(10000 + Math.random() * 90000)}`;
+    setPoGenerated({
+      poNum,
+      supplier,
+      deliveryDate,
+      total: totals.total,
+    });
+  };
 
   return (
     <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen">
@@ -99,22 +128,27 @@ export default function PurchaseOrderPage() {
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .material-symbols-outlined { font-family: 'Material Symbols Outlined'; vertical-align: middle; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
-        .glass-card { background: rgba(255,255,255,0.8); backdrop-filter: blur(12px); border: 1px solid rgba(226,232,240,0.8); }
       `}</style>
 
-      <Sidebar  />
+      <Sidebar />
 
       <main className="ml-[240px] min-h-screen p-6 bg-[#f7f9fb]">
         {/* Header & breadcrumbs */}
         <header className="mb-8">
           <div className="flex items-center gap-2 text-xs text-[#565e74] mb-2">
-            <span>Product</span>
+            <button
+              onClick={() => navigate("/product")}
+              className="hover:text-[#006194] hover:underline cursor-pointer"
+            >
+              Product
+            </button>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
-            <span>Purchase Orders</span>
+            <button
+              onClick={() => navigate("/sales")}
+              className="hover:text-[#006194] hover:underline cursor-pointer"
+            >
+              Purchase Orders
+            </button>
             <span className="material-symbols-outlined text-[14px]">chevron_right</span>
             <span className="text-[#006194] font-bold">New PO</span>
           </div>
@@ -124,10 +158,16 @@ export default function PurchaseOrderPage() {
               <p className="text-base text-[#3f4850]">Restock inventory and manage supplier relationships.</p>
             </div>
             <div className="flex gap-2">
-              <button className="px-6 py-2 border border-[#bfc7d2] text-[#565e74] rounded-lg font-medium hover:bg-[#e6e8ea] transition-all active:scale-95">
+              <button
+                onClick={() => navigate("/product")}
+                className="px-6 py-2 border border-[#bfc7d2] text-[#565e74] rounded-lg font-medium hover:bg-[#e6e8ea] transition-all active:scale-95 cursor-pointer"
+              >
                 Cancel
               </button>
-              <button className="px-6 py-2 bg-[#006194] text-white rounded-lg font-medium flex items-center gap-2 hover:opacity-90 transition-all active:scale-95">
+              <button
+                onClick={handleGeneratePO}
+                className="px-6 py-2 bg-[#006194] text-white rounded-lg font-medium flex items-center gap-2 hover:bg-[#007bb9] transition-all active:scale-95 cursor-pointer shadow-sm"
+              >
                 <span className="material-symbols-outlined text-[20px]">description</span>
                 Generate PO
               </button>
@@ -148,45 +188,48 @@ export default function PurchaseOrderPage() {
               </div>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-xs text-[#3f4850] mb-1 ml-1">Supplier Name</label>
+                  <label className="block text-xs text-[#3f4850] mb-1 ml-1 font-semibold">Supplier Name</label>
                   <div className="relative">
-                    <select className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#006194]/20 focus:border-[#006194] outline-none appearance-none cursor-pointer">
+                    <select
+                      value={supplier}
+                      onChange={(e) => setSupplier(e.target.value)}
+                      className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg px-4 py-2.5 focus:border-[#006194] outline-none cursor-pointer"
+                    >
                       {SUPPLIER_OPTIONS.map((opt) => (
-                        <option key={opt}>{opt}</option>
+                        <option key={opt} value={opt}>{opt}</option>
                       ))}
                     </select>
-                    <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[#707881]">
-                      expand_more
-                    </span>
                   </div>
                 </div>
                 <div>
-                  <label className="block text-xs text-[#3f4850] mb-1 ml-1">Expected Delivery Date</label>
+                  <label className="block text-xs text-[#3f4850] mb-1 ml-1 font-semibold">Expected Delivery Date</label>
                   <input
-                    className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-[#006194]/20 focus:border-[#006194] outline-none"
+                    value={deliveryDate}
+                    onChange={(e) => setDeliveryDate(e.target.value)}
+                    className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg px-4 py-2.5 focus:border-[#006194] outline-none"
                     type="date"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs text-[#3f4850] mb-1 ml-1">Shipping Method</label>
+                  <label className="block text-xs text-[#3f4850] mb-1 ml-1 font-semibold">Shipping Method</label>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setShippingMethod("standard")}
-                      className={
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
                         shippingMethod === "standard"
-                          ? "flex-1 py-2 border-2 border-[#006194] bg-[#cce5ff] text-[#004b73] rounded-lg text-sm font-semibold"
-                          : "flex-1 py-2 border border-[#bfc7d2] text-[#3f4850] rounded-lg text-sm hover:bg-[#e6e8ea] transition-all"
-                      }
+                          ? "border-2 border-[#006194] bg-[#cce5ff] text-[#004b73]"
+                          : "border border-[#bfc7d2] text-[#3f4850] hover:bg-[#e6e8ea]"
+                      }`}
                     >
                       Standard
                     </button>
                     <button
                       onClick={() => setShippingMethod("express")}
-                      className={
+                      className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all cursor-pointer ${
                         shippingMethod === "express"
-                          ? "flex-1 py-2 border-2 border-[#006194] bg-[#cce5ff] text-[#004b73] rounded-lg text-sm font-semibold"
-                          : "flex-1 py-2 border border-[#bfc7d2] text-[#3f4850] rounded-lg text-sm hover:bg-[#e6e8ea] transition-all"
-                      }
+                          ? "border-2 border-[#006194] bg-[#cce5ff] text-[#004b73]"
+                          : "border border-[#bfc7d2] text-[#3f4850] hover:bg-[#e6e8ea]"
+                      }`}
                     >
                       Express
                     </button>
@@ -195,31 +238,24 @@ export default function PurchaseOrderPage() {
               </div>
             </div>
 
-            {/* Supplier quick info */}
+            {/* Supplier summary */}
             <div className="bg-[#006194]/5 p-6 rounded-xl border border-[#006194]/10 flex flex-col gap-4 relative overflow-hidden">
-              <div className="absolute -right-4 -bottom-4 opacity-10">
-                <span className="material-symbols-outlined text-[120px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                  store
-                </span>
-              </div>
               <div className="relative z-10">
                 <h4 className="text-xs font-bold text-[#006194] uppercase tracking-wider mb-2">Supplier Summary</h4>
-                <div className="space-y-2">
+                <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
-                    <span className="text-[#3f4850]">Last Order:</span>
-                    <span className="font-medium">12 Oct 2023</span>
+                    <span className="text-[#3f4850]">Selected:</span>
+                    <span className="font-semibold text-[#191c1e]">{supplier}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-[#3f4850]">Active POs:</span>
-                    <span className="font-medium">2</span>
+                    <span className="font-medium">2 pending</span>
                   </div>
-                  <div className="flex justify-between">
+                  <div className="flex justify-between items-center">
                     <span className="text-[#3f4850]">Rating:</span>
                     <span className="flex items-center text-[#006194]">
                       {[0, 1, 2, 3].map((i) => (
-                        <span key={i} className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: "'FILL' 1" }}>
-                          star
-                        </span>
+                        <span key={i} className="material-symbols-outlined text-[16px]">star</span>
                       ))}
                       <span className="material-symbols-outlined text-[16px]">star_half</span>
                     </span>
@@ -239,7 +275,10 @@ export default function PurchaseOrderPage() {
                   </div>
                   <h3 className="text-[20px] font-semibold">Product Line Items</h3>
                 </div>
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#dae2fd] text-[#5c647a] rounded-lg font-medium hover:bg-[#bec6e0] transition-all active:scale-95">
+                <button
+                  onClick={() => setShowCatalogModal(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#006194] text-white rounded-lg font-medium hover:bg-[#007bb9] transition-all active:scale-95 cursor-pointer shadow-sm text-sm"
+                >
                   <span className="material-symbols-outlined text-[20px]">add_circle</span>
                   Add Product
                 </button>
@@ -253,10 +292,10 @@ export default function PurchaseOrderPage() {
                         Product Details
                       </th>
                       <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider font-semibold border-b border-[#bfc7d2] text-center">
-                        In Stock
+                        Current Stock
                       </th>
                       <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider font-semibold border-b border-[#bfc7d2] text-center">
-                        Quantity
+                        PO Quantity
                       </th>
                       <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider font-semibold border-b border-[#bfc7d2] text-right">
                         Unit Price
@@ -272,11 +311,11 @@ export default function PurchaseOrderPage() {
                       <tr key={item.id} className="hover:bg-[#f2f4f6] transition-colors group">
                         <td className="px-6 py-5">
                           <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-lg bg-[#eceef0] flex-shrink-0">
-                              <img className="w-full h-full object-cover rounded-lg" alt={item.name} src={item.image} />
+                            <div className="w-12 h-12 rounded-lg bg-[#eceef0] flex-shrink-0 overflow-hidden border border-[#bfc7d2]/30">
+                              <img className="w-full h-full object-cover" alt={item.name} src={item.image} />
                             </div>
                             <div>
-                              <p className="font-medium">{item.name}</p>
+                              <p className="font-semibold text-sm">{item.name}</p>
                               <p className="text-xs text-[#3f4850]">{item.sku}</p>
                             </div>
                           </div>
@@ -284,44 +323,55 @@ export default function PurchaseOrderPage() {
                         <td className="px-6 py-5 text-center">
                           <span
                             className="px-3 py-1 rounded-full text-[11px] font-bold"
-                            style={{ backgroundColor: item.stockStyle.bg, color: item.stockStyle.text }}
+                            style={{ backgroundColor: item.stockStyle?.bg || "#e0e3e5", color: item.stockStyle?.text || "#3f4850" }}
                           >
                             {item.stockLabel}
                           </span>
                         </td>
                         <td className="px-6 py-5">
                           <input
-                            className="w-20 mx-auto block bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg px-2 py-1.5 text-center focus:ring-1 focus:ring-[#006194] outline-none"
+                            className="w-20 mx-auto block bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg px-2 py-1.5 text-center focus:border-[#006194] outline-none font-semibold text-sm"
                             type="number"
+                            min="1"
                             value={item.qty}
                             onChange={(e) => updateQty(item.id, e.target.value)}
                           />
                         </td>
-                        <td className="px-6 py-5 text-right text-[#3f4850]">
-                          \u20B9{item.unitPrice.toFixed(2)}
+                        <td className="px-6 py-5 text-right text-[#3f4850] font-medium">
+                          ₹{item.unitPrice.toFixed(2)}
                         </td>
-                        <td className="px-6 py-5 text-right font-bold">
-                          \u20B9{(item.unitPrice * item.qty).toFixed(2)}
+                        <td className="px-6 py-5 text-right font-bold text-[#006194]">
+                          ₹{(item.unitPrice * item.qty).toFixed(2)}
                         </td>
                         <td className="px-6 py-5 text-right">
                           <button
                             onClick={() => removeItem(item.id)}
-                            className="text-[#707881] hover:text-[#ba1a1a] transition-colors p-1 rounded-md hover:bg-[#ffdad6]/20"
+                            className="text-[#707881] hover:text-[#ba1a1a] transition-colors p-1 rounded-md hover:bg-[#ffdad6]/20 cursor-pointer"
+                            title="Remove item"
                           >
-                            <span className="material-symbols-outlined">delete_outline</span>
+                            <span className="material-symbols-outlined text-[20px]">delete_outline</span>
                           </button>
                         </td>
                       </tr>
                     ))}
+                    {items.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-8 text-center text-sm text-[#707881]">
+                          No items added yet. Click "Add Product" or the button below.
+                        </td>
+                      </tr>
+                    )}
                     {/* Empty state / add more row */}
                     <tr className="bg-white">
                       <td className="px-6 py-4" colSpan={6}>
-                        <div className="border-2 border-dashed border-[#bfc7d2]/50 rounded-xl p-8 flex flex-col items-center justify-center text-[#3f4850] hover:border-[#006194]/50 hover:bg-[#006194]/5 transition-all cursor-pointer group">
-                          <span className="material-symbols-outlined text-[40px] mb-2 group-hover:scale-110 duration-300">
-                            search_insights
+                        <div
+                          onClick={() => setShowCatalogModal(true)}
+                          className="border-2 border-dashed border-[#bfc7d2]/50 rounded-xl p-6 flex flex-col items-center justify-center text-[#3f4850] hover:border-[#006194]/50 hover:bg-[#006194]/5 transition-all cursor-pointer group"
+                        >
+                          <span className="material-symbols-outlined text-[36px] text-[#006194] mb-1 group-hover:scale-110 duration-200">
+                            add_circle_outline
                           </span>
-                          <p className="text-sm font-medium">Click to search and add more products to this order</p>
-                          <p className="text-xs opacity-60">or drag and drop a CSV manifest</p>
+                          <p className="text-sm font-semibold">Click to select products from inventory to restock</p>
                         </div>
                       </td>
                     </tr>
@@ -330,26 +380,28 @@ export default function PurchaseOrderPage() {
               </div>
 
               {/* Summary section */}
-              <div className="mt-auto p-8 bg-[#f2f4f6]/50 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[#bfc7d2]">
+              <div className="mt-auto p-6 bg-[#f2f4f6]/50 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-[#bfc7d2]">
                 <div>
-                  <label className="block text-xs text-[#3f4850] mb-2 ml-1">Additional Notes</label>
+                  <label className="block text-xs font-semibold text-[#3f4850] mb-2 ml-1">Additional Notes</label>
                   <textarea
-                    className="w-full bg-white border border-[#bfc7d2] rounded-xl p-4 h-24 focus:ring-2 focus:ring-[#006194]/20 focus:border-[#006194] outline-none resize-none"
-                    placeholder="Enter special delivery instructions or billing notes..."
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full bg-white border border-[#bfc7d2] rounded-xl p-3 text-sm focus:border-[#006194] outline-none resize-none h-24"
+                    placeholder="Enter special delivery instructions or supplier terms..."
                   />
                 </div>
-                <div className="flex flex-col gap-3 justify-end">
-                  <div className="flex justify-between items-center">
+                <div className="flex flex-col gap-2 justify-end">
+                  <div className="flex justify-between items-center text-sm">
                     <span className="text-[#3f4850]">Subtotal</span>
-                    <span className="text-[20px]">\u20B9{totals.subtotal.toFixed(2)}</span>
+                    <span className="font-semibold">₹{totals.subtotal.toFixed(2)}</span>
                   </div>
-                  <div className="flex justify-between items-center">
-                    <span className="text-[#3f4850]">Tax (GST {Math.round(GST_RATE * 100)}%)</span>
-                    <span className="text-[20px]">\u20B9{totals.tax.toFixed(2)}</span>
+                  <div className="flex justify-between items-center text-sm">
+                    <span className="text-[#3f4850]">Tax (GST 18%)</span>
+                    <span className="font-semibold">₹{totals.tax.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center border-t border-[#bfc7d2] pt-3 mt-1">
-                    <span className="text-[20px] font-bold">Total Payable</span>
-                    <span className="text-[32px] font-bold text-[#006194]">\u20B9{totals.total.toFixed(2)}</span>
+                    <span className="text-base font-bold text-[#191c1e]">Total Payable</span>
+                    <span className="text-2xl font-extrabold text-[#006194]">₹{totals.total.toFixed(2)}</span>
                   </div>
                 </div>
               </div>
@@ -365,12 +417,84 @@ export default function PurchaseOrderPage() {
             <p>© 2024 Efficient Ledger. All rights reserved.</p>
           </div>
           <div className="flex gap-6 mt-4 md:mt-0">
-            <a className="hover:text-[#006194] transition-colors" href="#">Privacy Policy</a>
-            <a className="hover:text-[#006194] transition-colors" href="#">Terms of Service</a>
-            <a className="hover:text-[#006194] transition-colors" href="#">Contact Support</a>
+            <button onClick={() => alert("Privacy Policy: Supplier agreements are confidential.")} className="hover:text-[#006194] cursor-pointer">
+              Privacy Policy
+            </button>
+            <button onClick={() => alert("Terms of Service: Procurement agreements apply.")} className="hover:text-[#006194] cursor-pointer">
+              Terms of Service
+            </button>
+            <button onClick={() => navigate("/help")} className="hover:text-[#006194] cursor-pointer">
+              Contact Support
+            </button>
           </div>
         </footer>
       </main>
+
+      {/* Catalog Selector Modal */}
+      {showCatalogModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl p-6 border border-[#bfc7d2] animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center mb-4 border-b pb-3">
+              <h3 className="font-bold text-lg text-[#191c1e]">Select Product to Restock</h3>
+              <button onClick={() => setShowCatalogModal(false)} className="text-gray-500 hover:text-black">
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="space-y-3 max-h-[60vh] overflow-y-auto">
+              {AVAILABLE_CATALOG.map((catItem) => (
+                <div
+                  key={catItem.id}
+                  className="flex items-center justify-between p-3 border rounded-xl hover:bg-[#f7f9fb] transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <img src={catItem.image} alt={catItem.name} className="w-12 h-12 object-cover rounded-lg" />
+                    <div>
+                      <h4 className="font-semibold text-sm text-[#191c1e]">{catItem.name}</h4>
+                      <p className="text-xs text-[#707881]">{catItem.sku} • Stock: {catItem.stockLabel}</p>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => addItemToPO(catItem)}
+                    className="px-3 py-1.5 bg-[#006194] text-white text-xs font-semibold rounded-lg hover:bg-[#007bb9] cursor-pointer"
+                  >
+                    + Add to PO
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* PO Generated Success Modal */}
+      {poGenerated && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-[#bfc7d2] text-center animate-in fade-in zoom-in-95">
+            <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="material-symbols-outlined text-3xl">check_circle</span>
+            </div>
+            <h3 className="text-xl font-bold text-[#191c1e] mb-1">Purchase Order Created!</h3>
+            <p className="text-sm font-semibold text-[#006194] mb-3">{poGenerated.poNum}</p>
+            <p className="text-xs text-[#707881] mb-6">
+              A purchase order for ₹{poGenerated.total.toFixed(2)} has been issued to {poGenerated.supplier}. Delivery scheduled by {poGenerated.deliveryDate}.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => window.print()}
+                className="flex-1 py-2.5 bg-gray-100 hover:bg-gray-200 text-[#191c1e] rounded-xl text-xs font-bold"
+              >
+                Print PO
+              </button>
+              <button
+                onClick={() => navigate("/sales")}
+                className="flex-1 py-2.5 bg-[#006194] hover:bg-[#007bb9] text-white rounded-xl text-xs font-bold"
+              >
+                View in Ledger
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

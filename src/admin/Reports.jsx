@@ -73,16 +73,6 @@ const INSIGHT = {
   cta: "Create Purchase Order",
 };
 
-const FOOTER_LINKS = ["Privacy Policy", "Terms of Service", "Contact Support"];
-
-const MOBILE_NAV = [
-  { icon: "dashboard", label: "Home" },
-  { icon: "inventory_2", label: "Stock" },
-  { icon: "receipt_long", label: "", isFab: true },
-  { icon: "assessment", label: "Reports", active: true },
-  { icon: "settings", label: "Menu" },
-];
-
 export default function Gridproduct() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState("weekly"); // "weekly" | "monthly"
@@ -226,7 +216,10 @@ export default function Gridproduct() {
                   </div>
                 ))}
               </div>
-              <button className="mt-8 text-[#006194] font-bold text-xs flex items-center justify-center gap-2 hover:underline">
+              <button
+                onClick={() => navigate("/product")}
+                className="mt-8 text-[#006194] font-bold text-xs flex items-center justify-center gap-2 hover:underline cursor-pointer"
+              >
                 View Detailed Categories <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </button>
             </section>
@@ -237,11 +230,30 @@ export default function Gridproduct() {
             <div className="p-6 border-b border-[#bfc7d2]/30 flex justify-between items-center">
               <h3 className="text-[20px] font-semibold">Product Profitability</h3>
               <div className="flex gap-2">
-                <button className="p-2 border border-[#bfc7d2] rounded-lg text-[#565e74] hover:bg-[#f2f4f6]">
-                  <span className="material-symbols-outlined">filter_list</span>
-                </button>
-                <button className="p-2 border border-[#bfc7d2] rounded-lg text-[#565e74] hover:bg-[#f2f4f6]">
-                  <span className="material-symbols-outlined">download</span>
+                <button
+                  onClick={() => {
+                    const headers = ["Product Name", "Quantity Sold", "Revenue", "Tax", "Net Profit", "Margin"];
+                    const rows = PRODUCT_PROFITABILITY.map((p) => [
+                      `"${p.name}"`,
+                      `"${p.qty}"`,
+                      `"${p.revenue}"`,
+                      `"${p.tax}"`,
+                      `"${p.profit}"`,
+                      `"${p.margin}"`,
+                    ]);
+                    const csv = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+                    const link = document.createElement("a");
+                    link.setAttribute("href", encodeURI(csv));
+                    link.setAttribute("download", `product_profitability_${new Date().toISOString().slice(0, 10)}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  title="Download Profitability Report"
+                  className="p-2 border border-[#bfc7d2] rounded-lg text-[#565e74] hover:bg-[#f2f4f6] cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                >
+                  <span className="material-symbols-outlined text-[18px]">download</span>
+                  Export
                 </button>
               </div>
             </div>
@@ -352,11 +364,24 @@ export default function Gridproduct() {
               <span className="text-[#565e74] text-sm">© 2024 Efficient Ledger. All rights reserved.</span>
             </div>
             <div className="flex gap-8">
-              {FOOTER_LINKS.map((link) => (
-                <a key={link} className="text-[#3f4850] hover:text-[#006194] transition-colors text-sm" href="#">
-                  {link}
-                </a>
-              ))}
+              <button
+                onClick={() => alert("Privacy Policy: Reports and ledger metrics are protected.")}
+                className="text-[#3f4850] hover:text-[#006194] transition-colors text-sm cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+              <button
+                onClick={() => alert("Terms of Service: Reports and analytics usage policies.")}
+                className="text-[#3f4850] hover:text-[#006194] transition-colors text-sm cursor-pointer"
+              >
+                Terms of Service
+              </button>
+              <button
+                onClick={() => navigate("/help")}
+                className="text-[#3f4850] hover:text-[#006194] transition-colors text-sm cursor-pointer"
+              >
+                Contact Support
+              </button>
             </div>
           </div>
         </footer>
@@ -364,22 +389,40 @@ export default function Gridproduct() {
 
       {/* Mobile bottom nav */}
       <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white border-t border-[#bfc7d2] flex md:hidden items-center justify-around z-50">
-        {MOBILE_NAV.map((item) =>
-          item.isFab ? (
-            <div key="fab" className="bg-[#006194] p-3 rounded-full -mt-10 border-4 border-[#f7f9fb] shadow-lg">
-              <span className="material-symbols-outlined text-white">{item.icon}</span>
-            </div>
-          ) : (
-            <a
-              key={item.label}
-              href="#"
-              className={`flex flex-col items-center gap-1 ${item.active ? "text-[#006194]" : "text-[#565e74]"}`}
-            >
-              <span className="material-symbols-outlined">{item.icon}</span>
-              <span className="text-[10px] font-bold">{item.label}</span>
-            </a>
-          )
-        )}
+        <button
+          onClick={() => navigate("/")}
+          className="flex flex-col items-center gap-1 text-[#565e74] hover:text-[#006194]"
+        >
+          <span className="material-symbols-outlined">dashboard</span>
+          <span className="text-[10px] font-bold">Home</span>
+        </button>
+        <button
+          onClick={() => navigate("/product")}
+          className="flex flex-col items-center gap-1 text-[#565e74] hover:text-[#006194]"
+        >
+          <span className="material-symbols-outlined">inventory_2</span>
+          <span className="text-[10px] font-bold">Stock</span>
+        </button>
+        <button
+          onClick={() => navigate("/billing")}
+          className="bg-[#006194] p-3 rounded-full -mt-10 border-4 border-[#f7f9fb] shadow-lg text-white"
+        >
+          <span className="material-symbols-outlined text-white">receipt_long</span>
+        </button>
+        <button
+          onClick={() => navigate("/reports")}
+          className="flex flex-col items-center gap-1 text-[#006194]"
+        >
+          <span className="material-symbols-outlined">assessment</span>
+          <span className="text-[10px] font-bold">Reports</span>
+        </button>
+        <button
+          onClick={() => navigate("/settings")}
+          className="flex flex-col items-center gap-1 text-[#565e74] hover:text-[#006194]"
+        >
+          <span className="material-symbols-outlined">settings</span>
+          <span className="text-[10px] font-bold">Settings</span>
+        </button>
       </nav>
     </div>
   );

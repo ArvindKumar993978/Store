@@ -79,10 +79,18 @@ const Entrance = () => {
             </span>
           </div>
           <div className="flex items-center gap-4">
-            <button className="text-[#3f4850] hover:text-[#006194] transition-colors p-2 rounded-full">
+            <button 
+              onClick={() => navigate("/help")}
+              className="text-[#3f4850] hover:text-[#006194] transition-colors p-2 rounded-full hover:bg-[#eff4ff]"
+              title="Help & Support"
+            >
               <span className="material-symbols-outlined">help</span>
             </button>
-            <button className="text-[#3f4850] hover:text-[#006194] transition-colors p-2 rounded-full">
+            <button 
+              onClick={() => navigate("/settings")}
+              className="text-[#3f4850] hover:text-[#006194] transition-colors p-2 rounded-full hover:bg-[#eff4ff]"
+              title="Settings"
+            >
               <span className="material-symbols-outlined">settings</span>
             </button>
           </div>
@@ -281,9 +289,9 @@ const Entrance = () => {
             <span className="text-[#3f4850] text-sm">© 2024 Krishna Store. All rights reserved.</span>
           </div>
           <nav className="flex gap-4">
-            <a className="text-[#3f4850] text-sm hover:underline" href="#">Privacy Policy</a>
-            <a className="text-[#3f4850] text-sm hover:underline" href="#">Terms of Service</a>
-            <a className="text-[#3f4850] text-sm hover:underline" href="#">Support</a>
+            <button onClick={() => navigate("/help")} className="text-[#3f4850] text-sm hover:underline">Privacy Policy</button>
+            <button onClick={() => navigate("/help")} className="text-[#3f4850] text-sm hover:underline">Terms of Service</button>
+            <button onClick={() => navigate("/help")} className="text-[#3f4850] text-sm hover:underline font-semibold text-[#006194]">Support</button>
           </nav>
         </div>
       </footer>

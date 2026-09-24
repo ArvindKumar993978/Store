@@ -1,21 +1,34 @@
 import React, { useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 
 export default function BackupData() {
+  const navigate = useNavigate();
   const [backupState, setBackupState] = useState("idle"); // idle | syncing | complete
   const [dragActive, setDragActive] = useState(false);
-  const [fileName, setFileName] = useState(null);
+  const [fileInfo, setFileInfo] = useState(null); // { name, size }
+  const [exportFormat, setExportFormat] = useState("xlsx");
+  const [showRestoreModal, setShowRestoreModal] = useState(false);
+  const [restoring, setRestoring] = useState(false);
+  const [restoreProgress, setRestoreProgress] = useState(0);
+  const [toast, setToast] = useState(null);
   const fileInputRef = useRef(null);
+
+  const showToast = (message) => {
+    setToast(message);
+    setTimeout(() => setToast(null), 3500);
+  };
 
   const handleBackupNow = () => {
     if (backupState !== "idle") return;
     setBackupState("syncing");
     setTimeout(() => {
       setBackupState("complete");
+      showToast("Cloud backup synchronized successfully!");
       setTimeout(() => {
         setBackupState("idle");
       }, 2000);
-    }, 3000);
+    }, 2500);
   };
 
   const handleDropzoneClick = () => {
@@ -31,12 +44,98 @@ export default function BackupData() {
     e.preventDefault();
     setDragActive(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) setFileName(file.name);
+    if (file) {
+      setFileInfo({
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + " KB",
+      });
+      showToast(`Selected backup file: ${file.name}`);
+    }
   };
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0];
-    if (file) setFileName(file.name);
+    if (file) {
+      setFileInfo({
+        name: file.name,
+        size: (file.size / 1024).toFixed(1) + " KB",
+      });
+      showToast(`Selected backup file: ${file.name}`);
+    }
+  };
+
+  const handleClearFile = (e) => {
+    e.stopPropagation();
+    setFileInfo(null);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    showToast("File selection cleared.");
+  };
+
+  const handleExportDataset = (datasetName) => {
+    let content, mimeType, fileExt;
+    const dateStr = new Date().toISOString().slice(0, 10);
+
+    if (exportFormat === "csv") {
+      mimeType = "text/csv;charset=utf-8;";
+      fileExt = "csv";
+      content = `ID,RecordName,Category,Date,Status,Amount\n1,${datasetName} Item 101,Standard,${dateStr},Active,150.00\n2,${datasetName} Item 102,Standard,${dateStr},Active,275.50\n3,${datasetName} Item 103,Premium,${dateStr},Active,899.00\n`;
+    } else if (exportFormat === "json") {
+      mimeType = "application/json";
+      fileExt = "json";
+      content = JSON.stringify(
+        {
+          dataset: datasetName,
+          generatedDate: new Date().toISOString(),
+          recordCount: datasetName === "Product Catalog" ? 1240 : datasetName === "Sales Records" ? 8500 : 450,
+          entries: [
+            { id: 101, name: `${datasetName} Sample A`, date: dateStr, status: "Active" },
+            { id: 102, name: `${datasetName} Sample B`, date: dateStr, status: "Active" },
+          ],
+        },
+        null,
+        2
+      );
+    } else {
+      // Excel compatible CSV/XML text format
+      mimeType = "application/vnd.ms-excel";
+      fileExt = "xlsx";
+      content = `ID\tRecordName\tCategory\tDate\tStatus\n1\t${datasetName} Item 101\tStandard\t${dateStr}\tActive\n2\t${datasetName} Item 102\tStandard\t${dateStr}\tActive\n`;
+    }
+
+    const blob = new Blob([content], { type: mimeType });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${datasetName.replace(/\s+/g, "_")}_Export_${dateStr}.${fileExt}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+
+    showToast(`Exported ${datasetName} (${fileExt.toUpperCase()})`);
+  };
+
+  const handleConfirmRestore = () => {
+    setRestoring(true);
+    setRestoreProgress(10);
+
+    const stepInterval = setInterval(() => {
+      setRestoreProgress((prev) => {
+        if (prev >= 90) {
+          clearInterval(stepInterval);
+          setTimeout(() => {
+            setRestoring(false);
+            setShowRestoreModal(false);
+            const restoredFileName = fileInfo?.name || "backup";
+            setFileInfo(null);
+            if (fileInputRef.current) fileInputRef.current.value = "";
+            showToast(`Database successfully restored from ${restoredFileName}!`);
+          }, 600);
+          return 100;
+        }
+        return prev + 25;
+      });
+    }, 450);
   };
 
   return (
@@ -49,6 +148,14 @@ export default function BackupData() {
         .card-shadow { box-shadow: 0px 1px 3px rgba(0,0,0,0.05), 0px 1px 2px rgba(0,0,0,0.03); }
       `}</style>
 
+      {/* Live Toast */}
+      {toast && (
+        <div className="fixed bottom-6 right-6 z-50 bg-[#001d31] text-white px-5 py-3 rounded-lg shadow-xl flex items-center gap-3 border border-[#006194]/40 animate-fade-in">
+          <span className="material-symbols-outlined text-[#8cd0ff] text-[20px]">info</span>
+          <span className="text-[14px] font-medium">{toast}</span>
+        </div>
+      )}
+
       <Sidebar />
 
       {/* Main Content */}
@@ -59,16 +166,28 @@ export default function BackupData() {
             Backup &amp; Data Portability
           </h2>
           <div className="flex items-center gap-4">
-            <button className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors">
+            <button
+              onClick={() => navigate("/help")}
+              title="Help Center"
+              className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors cursor-pointer rounded-lg hover:bg-[#e0e3e5]"
+            >
               <span className="material-symbols-outlined">help</span>
             </button>
-            <button className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors">
+            <button
+              onClick={() => navigate("/settings")}
+              title="Settings"
+              className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors cursor-pointer rounded-lg hover:bg-[#e0e3e5]"
+            >
               <span className="material-symbols-outlined">settings</span>
             </button>
-            <div className="w-8 h-8 rounded-full bg-[#cce5ff] flex items-center justify-center border border-[#bfc7d2] overflow-hidden">
+            <div
+              onClick={() => navigate("/settings")}
+              title="Profile & Account Settings"
+              className="w-8 h-8 rounded-full bg-[#cce5ff] flex items-center justify-center border border-[#bfc7d2] overflow-hidden cursor-pointer hover:ring-2 hover:ring-[#006194]"
+            >
               <img
                 className="w-full h-full object-cover"
-                alt="A professional headshot of a modern Indian business manager in a clean office setting, featuring soft natural lighting and a minimalist corporate aesthetic. The background is slightly blurred with light blue and grey tones consistent with the Efficient Ledger brand palette."
+                alt="Profile"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuAKA36f0Ab3-zPdfmk0hwBFH1vMrL92e-jlvCROGGiiJknZk4vgrZ9Ue6ANnZIk-UZvTrJBnWRLm9j4lFqoAa2KUL-M3r3KCMa4g2TgRiL2IXvnLHwo18Wg3CG7EuibIujwCTcwVeZywiAJeK8J4DmVNOIz2Ax-KAs4APa097ub10ubZJBy-bgWvwNKIKKVwBiyH577Lgm6PAjxNQ-Jhoa5ksgTt6n_N4wlTM2dbJE6ibi0zh9OHT5fnGUK50Twnu6jvePVfDFW_Ehw"
               />
             </div>
@@ -125,7 +244,7 @@ export default function BackupData() {
                 <button
                   onClick={handleBackupNow}
                   disabled={backupState !== "idle"}
-                  className={`w-full md:w-auto px-6 py-2.5 text-white rounded-lg text-[12px] tracking-[0.05em] font-semibold flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-95 ${
+                  className={`w-full md:w-auto px-6 py-2.5 text-white rounded-lg text-[12px] tracking-[0.05em] font-semibold flex items-center justify-center gap-2 transition-all hover:brightness-110 active:scale-95 cursor-pointer ${
                     backupState !== "idle" ? "opacity-75" : ""
                   }`}
                   style={{
@@ -173,7 +292,7 @@ export default function BackupData() {
             </section>
 
             {/* Auto-Backup Settings */}
-            <AutoBackupSettings />
+            <AutoBackupSettings onNotify={showToast} />
           </div>
 
           {/* Data Export Grid */}
@@ -196,90 +315,124 @@ export default function BackupData() {
                 <span className="text-[12px] tracking-[0.05em] font-semibold text-[#3f4850]">
                   Format:
                 </span>
-                <select className="bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg text-[12px] tracking-[0.05em] font-semibold px-3 py-1 focus:ring-[#006194] focus:border-[#006194]">
-                  <option>Excel (.xlsx)</option>
-                  <option>CSV (.csv)</option>
-                  <option>JSON (.json)</option>
+                <select
+                  value={exportFormat}
+                  onChange={(e) => {
+                    setExportFormat(e.target.value);
+                    showToast(`Export format changed to .${e.target.value}`);
+                  }}
+                  className="bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg text-[12px] tracking-[0.05em] font-semibold px-3 py-1.5 focus:ring-[#006194] focus:border-[#006194] outline-none cursor-pointer"
+                >
+                  <option value="xlsx">Excel (.xlsx)</option>
+                  <option value="csv">CSV (.csv)</option>
+                  <option value="json">JSON (.json)</option>
                 </select>
               </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
               {/* Export Card: Products */}
-              <div className="group p-4 border border-[#bfc7d2] rounded-xl hover:bg-[#f2f4f6] transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-[#007bb9]/10 text-[#006194] rounded-lg">
-                    <span className="material-symbols-outlined">inventory_2</span>
+              <div className="group p-4 border border-[#bfc7d2] rounded-xl hover:bg-[#f2f4f6] transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-[#007bb9]/10 text-[#006194] rounded-lg">
+                      <span className="material-symbols-outlined">inventory_2</span>
+                    </div>
+                    <button
+                      onClick={() => handleExportDataset("Product Catalog")}
+                      title="Download Product Catalog"
+                      className="text-[#006194] hover:bg-[#007bb9]/20 p-2 rounded-full transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined">file_download</span>
+                    </button>
                   </div>
-                  <button className="text-[#006194] hover:bg-[#007bb9]/20 p-2 rounded-full transition-colors">
-                    <span className="material-symbols-outlined">file_download</span>
-                  </button>
+                  <h4 className="text-[16px] leading-[24px] font-bold text-[#191c1e]">
+                    Product Catalog
+                  </h4>
+                  <p className="text-[14px] leading-[20px] text-[#3f4850] mt-1">
+                    Stock levels, pricing, and supplier info.
+                  </p>
                 </div>
-                <h4 className="text-[16px] leading-[24px] font-bold text-[#191c1e]">
-                  Product Catalog
-                </h4>
-                <p className="text-[14px] leading-[20px] text-[#3f4850] mt-1">
-                  Stock levels, pricing, and supplier info.
-                </p>
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex items-center justify-between pt-2 border-t border-[#bfc7d2]/40">
                   <span className="text-[12px] tracking-[0.05em] font-semibold text-[#3f4850] italic">
                     1,240 Items
                   </span>
-                  <span className="text-[14px] leading-[20px] font-medium text-[#3f4850]">
-                    2.4 MB
-                  </span>
+                  <button
+                    onClick={() => handleExportDataset("Product Catalog")}
+                    className="text-[12px] font-semibold text-[#006194] hover:underline cursor-pointer"
+                  >
+                    Download
+                  </button>
                 </div>
               </div>
 
               {/* Export Card: Sales */}
-              <div className="group p-4 border border-[#bfc7d2] rounded-xl hover:bg-[#f2f4f6] transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-[#00855b]/10 text-[#006947] rounded-lg">
-                    <span className="material-symbols-outlined">analytics</span>
+              <div className="group p-4 border border-[#bfc7d2] rounded-xl hover:bg-[#f2f4f6] transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-[#00855b]/10 text-[#006947] rounded-lg">
+                      <span className="material-symbols-outlined">analytics</span>
+                    </div>
+                    <button
+                      onClick={() => handleExportDataset("Sales Records")}
+                      title="Download Sales Records"
+                      className="text-[#006947] hover:bg-[#00855b]/20 p-2 rounded-full transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined">file_download</span>
+                    </button>
                   </div>
-                  <button className="text-[#006947] hover:bg-[#00855b]/20 p-2 rounded-full transition-colors">
-                    <span className="material-symbols-outlined">file_download</span>
-                  </button>
+                  <h4 className="text-[16px] leading-[24px] font-bold text-[#191c1e]">
+                    Sales Records
+                  </h4>
+                  <p className="text-[14px] leading-[20px] text-[#3f4850] mt-1">
+                    Transaction history and tax reports.
+                  </p>
                 </div>
-                <h4 className="text-[16px] leading-[24px] font-bold text-[#191c1e]">
-                  Sales Records
-                </h4>
-                <p className="text-[14px] leading-[20px] text-[#3f4850] mt-1">
-                  Transaction history and tax reports.
-                </p>
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex items-center justify-between pt-2 border-t border-[#bfc7d2]/40">
                   <span className="text-[12px] tracking-[0.05em] font-semibold text-[#3f4850] italic">
                     8,500 Records
                   </span>
-                  <span className="text-[14px] leading-[20px] font-medium text-[#3f4850]">
-                    14.8 MB
-                  </span>
+                  <button
+                    onClick={() => handleExportDataset("Sales Records")}
+                    className="text-[12px] font-semibold text-[#006947] hover:underline cursor-pointer"
+                  >
+                    Download
+                  </button>
                 </div>
               </div>
 
               {/* Export Card: Customers */}
-              <div className="group p-4 border border-[#bfc7d2] rounded-xl hover:bg-[#f2f4f6] transition-all">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 bg-[#dae2fd]/20 text-[#565e74] rounded-lg">
-                    <span className="material-symbols-outlined">group</span>
+              <div className="group p-4 border border-[#bfc7d2] rounded-xl hover:bg-[#f2f4f6] transition-all flex flex-col justify-between">
+                <div>
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="p-3 bg-[#dae2fd]/20 text-[#565e74] rounded-lg">
+                      <span className="material-symbols-outlined">group</span>
+                    </div>
+                    <button
+                      onClick={() => handleExportDataset("Customer Data")}
+                      title="Download Customer Data"
+                      className="text-[#565e74] hover:bg-[#dae2fd]/40 p-2 rounded-full transition-colors cursor-pointer"
+                    >
+                      <span className="material-symbols-outlined">file_download</span>
+                    </button>
                   </div>
-                  <button className="text-[#565e74] hover:bg-[#dae2fd]/40 p-2 rounded-full transition-colors">
-                    <span className="material-symbols-outlined">file_download</span>
-                  </button>
+                  <h4 className="text-[16px] leading-[24px] font-bold text-[#191c1e]">
+                    Customer Data
+                  </h4>
+                  <p className="text-[14px] leading-[20px] text-[#3f4850] mt-1">
+                    Profiles, loyalty points, and history.
+                  </p>
                 </div>
-                <h4 className="text-[16px] leading-[24px] font-bold text-[#191c1e]">
-                  Customer Data
-                </h4>
-                <p className="text-[14px] leading-[20px] text-[#3f4850] mt-1">
-                  Profiles, loyalty points, and history.
-                </p>
-                <div className="mt-4 flex items-center justify-between">
+                <div className="mt-4 flex items-center justify-between pt-2 border-t border-[#bfc7d2]/40">
                   <span className="text-[12px] tracking-[0.05em] font-semibold text-[#3f4850] italic">
                     450 Profiles
                   </span>
-                  <span className="text-[14px] leading-[20px] font-medium text-[#3f4850]">
-                    0.8 MB
-                  </span>
+                  <button
+                    onClick={() => handleExportDataset("Customer Data")}
+                    className="text-[12px] font-semibold text-[#565e74] hover:underline cursor-pointer"
+                  >
+                    Download
+                  </button>
                 </div>
               </div>
             </div>
@@ -314,7 +467,7 @@ export default function BackupData() {
                   onDragOver={(e) => handleDrag(e, true)}
                   onDragLeave={(e) => handleDrag(e, false)}
                   onDrop={handleDrop}
-                  className={`w-full h-48 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-colors cursor-pointer group ${
+                  className={`w-full min-h-[192px] p-6 border-2 border-dashed rounded-xl flex flex-col items-center justify-center transition-colors cursor-pointer group ${
                     dragActive ? "border-[#006194] bg-[#007bb9]/10" : "border-[#bfc7d2] bg-[#f7f9fb] hover:bg-[#f2f4f6]"
                   }`}
                 >
@@ -322,17 +475,52 @@ export default function BackupData() {
                     ref={fileInputRef}
                     className="hidden"
                     type="file"
+                    accept=".ledger,.zip,.xlsx,.csv,.json"
                     onChange={handleFileChange}
                   />
-                  <span className="material-symbols-outlined text-[48px] text-[#707881] group-hover:text-[#006194] transition-colors">
-                    cloud_upload
-                  </span>
-                  <p className="mt-2 text-[16px] leading-[24px] font-medium text-[#191c1e]">
-                    {fileName ? fileName : "Click or drag backup file here"}
-                  </p>
-                  <p className="text-[12px] tracking-[0.05em] font-semibold text-[#3f4850]">
-                    Supports .ledger, .zip, .xlsx
-                  </p>
+
+                  {fileInfo ? (
+                    <div className="w-full flex flex-col items-center text-center">
+                      <div className="w-12 h-12 rounded-full bg-[#006194]/10 text-[#006194] flex items-center justify-center mb-3">
+                        <span className="material-symbols-outlined text-[28px]">description</span>
+                      </div>
+                      <p className="text-[16px] font-bold text-[#191c1e]">{fileInfo.name}</p>
+                      <p className="text-[13px] text-[#3f4850] mt-0.5">Size: {fileInfo.size}</p>
+
+                      <div className="mt-4 flex gap-3">
+                        <button
+                          type="button"
+                          onClick={handleClearFile}
+                          className="px-4 py-1.5 text-[13px] font-medium border border-[#bfc7d2] rounded-lg hover:bg-white transition-colors"
+                        >
+                          Clear
+                        </button>
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowRestoreModal(true);
+                          }}
+                          className="px-5 py-1.5 text-[13px] font-semibold bg-[#ba1a1a] hover:bg-[#93000a] text-white rounded-lg transition-colors flex items-center gap-1.5 shadow-sm"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">restore</span>
+                          Restore Database
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span className="material-symbols-outlined text-[48px] text-[#707881] group-hover:text-[#006194] transition-colors">
+                        cloud_upload
+                      </span>
+                      <p className="mt-2 text-[16px] leading-[24px] font-medium text-[#191c1e]">
+                        Click or drag backup file here
+                      </p>
+                      <p className="text-[12px] tracking-[0.05em] font-semibold text-[#3f4850]">
+                        Supports .ledger, .zip, .xlsx, .csv, .json
+                      </p>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -345,94 +533,174 @@ export default function BackupData() {
             © 2024 Efficient Ledger. All rights reserved.
           </span>
           <div className="flex items-center gap-6 mt-4 md:mt-0">
-            <a className="text-[12px] text-[#3f4850] hover:underline transition-all" href="#">
+            <button
+              onClick={() => navigate("/help")}
+              className="text-[12px] text-[#3f4850] hover:underline transition-all cursor-pointer"
+            >
               Privacy Policy
-            </a>
-            <a className="text-[12px] text-[#3f4850] hover:underline transition-all" href="#">
+            </button>
+            <button
+              onClick={() => navigate("/help")}
+              className="text-[12px] text-[#3f4850] hover:underline transition-all cursor-pointer"
+            >
               Terms of Service
-            </a>
-            <a className="text-[12px] text-[#3f4850] hover:underline transition-all" href="#">
+            </button>
+            <button
+              onClick={() => navigate("/help")}
+              className="text-[12px] text-[#3f4850] hover:underline transition-all cursor-pointer"
+            >
               Support
-            </a>
+            </button>
           </div>
         </footer>
       </main>
+
+      {/* Restore Confirmation & Progress Modal */}
+      {showRestoreModal && (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 shadow-2xl border border-[#bfc7d2]">
+            {!restoring ? (
+              <>
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-3 bg-[#ffdad6] text-[#ba1a1a] rounded-full">
+                    <span className="material-symbols-outlined text-[24px]">warning</span>
+                  </div>
+                  <div>
+                    <h3 className="text-[18px] font-bold text-[#191c1e]">Confirm Database Restore</h3>
+                    <p className="text-[13px] text-[#40474f]">This operation cannot be reversed.</p>
+                  </div>
+                </div>
+                <p className="text-[14px] text-[#3f4850] mb-6">
+                  Restoring from <strong className="text-[#191c1e]">{fileInfo?.name}</strong> will overwrite current products, sales, and customer tables with the backup archive data.
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button
+                    onClick={() => setShowRestoreModal(false)}
+                    className="px-4 py-2 border border-[#bfc7d2] rounded-lg text-[14px] font-medium hover:bg-[#f2f4f6]"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleConfirmRestore}
+                    className="px-5 py-2 bg-[#ba1a1a] hover:bg-[#93000a] text-white rounded-lg text-[14px] font-semibold transition-colors flex items-center gap-1.5 shadow-sm"
+                  >
+                    <span className="material-symbols-outlined text-[18px]">restore</span>
+                    Confirm &amp; Restore
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div className="py-6 flex flex-col items-center text-center">
+                <div className="relative w-16 h-16 mb-4">
+                  <svg className="animate-spin w-full h-full text-[#006194]" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                </div>
+                <h4 className="text-[18px] font-bold text-[#191c1e] mb-1">Restoring Database...</h4>
+                <p className="text-[13px] text-[#40474f] mb-4">Please do not refresh or close the browser.</p>
+                <div className="w-full bg-[#f2f4f6] h-2.5 rounded-full overflow-hidden border border-[#bfc7d2]/40">
+                  <div
+                    className="bg-[#006194] h-full transition-all duration-300 rounded-full"
+                    style={{ width: `${restoreProgress}%` }}
+                  />
+                </div>
+                <span className="text-[12px] font-semibold text-[#006194] mt-2">{restoreProgress}%</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-function AutoBackupSettings() {
+function AutoBackupSettings({ onNotify }) {
   const [frequency, setFrequency] = useState("daily");
   const [emailOnFailure, setEmailOnFailure] = useState(true);
 
+  const handleSave = () => {
+    onNotify?.(`Auto-backup set to ${frequency} with failure alert ${emailOnFailure ? "enabled" : "disabled"}`);
+  };
+
   return (
-    <section className="md:col-span-5 bg-white rounded-xl card-shadow p-6">
-      <div className="flex items-center gap-2 mb-6">
-        <span className="p-2 bg-[#007bb9]/10 text-[#006194] rounded-lg">
-          <span className="material-symbols-outlined">schedule</span>
-        </span>
-        <h3 className="text-[20px] leading-[28px] font-semibold text-[#191c1e]">Auto-Backup</h3>
-      </div>
-      <div className="space-y-4">
-        <div
-          onClick={() => setFrequency("daily")}
-          className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer group ${
-            frequency === "daily" ? "border-[#006194]" : "border-[#bfc7d2] hover:border-[#006194]"
-          }`}
-        >
-          <div className="flex flex-col">
-            <span className="text-[16px] leading-[24px] font-semibold text-[#191c1e]">
-              Daily Backup
-            </span>
-            <span className="text-[14px] leading-[20px] text-[#3f4850]">
-              Every day at 02:00 AM
-            </span>
-          </div>
-          <input
-            checked={frequency === "daily"}
-            onChange={() => setFrequency("daily")}
-            className="w-5 h-5 text-[#006194] border-[#bfc7d2] focus:ring-[#006194]"
-            name="freq"
-            type="radio"
-          />
+    <section className="md:col-span-5 bg-white rounded-xl card-shadow p-6 flex flex-col justify-between">
+      <div>
+        <div className="flex items-center gap-2 mb-6">
+          <span className="p-2 bg-[#007bb9]/10 text-[#006194] rounded-lg">
+            <span className="material-symbols-outlined">schedule</span>
+          </span>
+          <h3 className="text-[20px] leading-[28px] font-semibold text-[#191c1e]">Auto-Backup</h3>
         </div>
-        <div
-          onClick={() => setFrequency("weekly")}
-          className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
-            frequency === "weekly" ? "border-[#006194]" : "border-[#bfc7d2] hover:border-[#006194]"
-          }`}
-        >
-          <div className="flex flex-col">
-            <span className="text-[16px] leading-[24px] font-semibold text-[#191c1e]">
-              Weekly Backup
-            </span>
-            <span className="text-[14px] leading-[20px] text-[#3f4850]">Sundays at 12:00 AM</span>
-          </div>
-          <input
-            checked={frequency === "weekly"}
-            onChange={() => setFrequency("weekly")}
-            className="w-5 h-5 text-[#006194] border-[#bfc7d2] focus:ring-[#006194]"
-            name="freq"
-            type="radio"
-          />
-        </div>
-        <div className="pt-4 flex items-center gap-2">
-          <label className="relative inline-flex items-center cursor-pointer">
+        <div className="space-y-4">
+          <div
+            onClick={() => setFrequency("daily")}
+            className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer group ${
+              frequency === "daily" ? "border-[#006194] bg-[#007bb9]/5" : "border-[#bfc7d2] hover:border-[#006194]"
+            }`}
+          >
+            <div className="flex flex-col">
+              <span className="text-[16px] leading-[24px] font-semibold text-[#191c1e]">
+                Daily Backup
+              </span>
+              <span className="text-[14px] leading-[20px] text-[#3f4850]">
+                Every day at 02:00 AM
+              </span>
+            </div>
             <input
-              checked={emailOnFailure}
-              onChange={() => setEmailOnFailure((v) => !v)}
-              className="sr-only peer"
-              type="checkbox"
+              checked={frequency === "daily"}
+              onChange={() => setFrequency("daily")}
+              className="w-5 h-5 text-[#006194] border-[#bfc7d2] focus:ring-[#006194] cursor-pointer"
+              name="freq"
+              type="radio"
             />
-            <div
-              className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all relative transition-colors"
-              style={{ backgroundColor: emailOnFailure ? "#006194" : "#d8dadc" }}
-            ></div>
-            <span className="ml-3 text-[14px] leading-[20px] text-[#3f4850]">
-              Email me on failure
-            </span>
-          </label>
+          </div>
+          <div
+            onClick={() => setFrequency("weekly")}
+            className={`flex items-center justify-between p-3 rounded-lg border transition-colors cursor-pointer ${
+              frequency === "weekly" ? "border-[#006194] bg-[#007bb9]/5" : "border-[#bfc7d2] hover:border-[#006194]"
+            }`}
+          >
+            <div className="flex flex-col">
+              <span className="text-[16px] leading-[24px] font-semibold text-[#191c1e]">
+                Weekly Backup
+              </span>
+              <span className="text-[14px] leading-[20px] text-[#3f4850]">Sundays at 12:00 AM</span>
+            </div>
+            <input
+              checked={frequency === "weekly"}
+              onChange={() => setFrequency("weekly")}
+              className="w-5 h-5 text-[#006194] border-[#bfc7d2] focus:ring-[#006194] cursor-pointer"
+              name="freq"
+              type="radio"
+            />
+          </div>
+          <div className="pt-2 flex items-center gap-2">
+            <label className="relative inline-flex items-center cursor-pointer">
+              <input
+                checked={emailOnFailure}
+                onChange={() => setEmailOnFailure((v) => !v)}
+                className="sr-only peer"
+                type="checkbox"
+              />
+              <div
+                className="w-11 h-6 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all relative transition-colors"
+                style={{ backgroundColor: emailOnFailure ? "#006194" : "#d8dadc" }}
+              ></div>
+              <span className="ml-3 text-[14px] leading-[20px] text-[#3f4850]">
+                Email me on failure
+              </span>
+            </label>
+          </div>
         </div>
+      </div>
+      <div className="mt-6 pt-4 border-t border-[#bfc7d2]/40">
+        <button
+          onClick={handleSave}
+          className="w-full py-2 bg-[#004870] hover:bg-[#006194] text-white text-[13px] font-semibold rounded-lg transition-colors cursor-pointer shadow-sm"
+        >
+          Save Preferences
+        </button>
       </div>
     </section>
   );

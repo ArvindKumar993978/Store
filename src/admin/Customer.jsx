@@ -1,30 +1,7 @@
-import React from "react";
+import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
 import Sidebar from "../component/Sidebar";
 import Topnav from "../component/Topnav";
-
-/*
-  EASY-TO-EDIT VERSION
-  --------------------
-  Colors as Tailwind arbitrary values, e.g. text-[#006194].
-
-  Quick color reference:
-    #006194  -> primary (blue)
-    #006947  -> tertiary (green, "+12%" / "₹0" outstanding)
-    #565e74  -> secondary text
-    #ba1a1a  -> error (red, overdue amounts)
-    #f7f9fb  -> page background
-    #f2f4f6  -> surface-container-low
-    #bfc7d2  -> border color
-    Loyalty tier badges use Tailwind's built-in purple/amber/slate
-    (same as the original page): Platinum, Gold, Regular.
-
-  DATA:
-  CUSTOMERS array below feeds the table. Each row's avatar initials,
-  loyalty tier, and outstanding-amount color are derived automatically
-  from the row's data — edit the array to add/remove/change customers.
-*/
 
 const SUMMARY_CARDS = [
   {
@@ -41,7 +18,7 @@ const SUMMARY_CARDS = [
     icon: "account_balance_wallet",
     iconBg: "#ba1a1a",
     label: "Total Receivables",
-    value: "\u20B94,82,900",
+    value: "₹4,82,900",
     badge: "5 Pending",
     badgeColor: "#ba1a1a",
     badgeIcon: "priority_high",
@@ -68,16 +45,17 @@ const AVATAR_COLORS = {
   Regular: "#565e74",
 };
 
-const CUSTOMERS = [
+const INITIAL_CUSTOMERS = [
   {
     initials: "RJ",
     name: "Rajesh Jha",
     id: "CL-9021",
+    email: "rajesh.jha@example.com",
     phone: "+91 98765 43210",
     location: "Mumbai, Maharashtra",
-    totalPurchases: "\u20B91,42,500",
+    totalPurchases: "₹1,42,500",
     orders: 24,
-    outstanding: "\u20B912,400",
+    outstanding: "₹12,400",
     outstandingColor: "#ba1a1a",
     tier: "Platinum",
   },
@@ -85,11 +63,12 @@ const CUSTOMERS = [
     initials: "AK",
     name: "Ananya Kapoor",
     id: "CL-8562",
+    email: "ananya.kapoor@example.com",
     phone: "+91 88822 11223",
     location: "Delhi, NCR",
-    totalPurchases: "\u20B984,200",
+    totalPurchases: "₹84,200",
     orders: 12,
-    outstanding: "\u20B90",
+    outstanding: "₹0",
     outstandingColor: "#006947",
     tier: "Gold",
   },
@@ -97,11 +76,12 @@ const CUSTOMERS = [
     initials: "MS",
     name: "Mohammed Sahil",
     id: "CL-4102",
+    email: "m.sahil@example.com",
     phone: "+91 70011 22334",
     location: "Bengaluru, KA",
-    totalPurchases: "\u20B922,150",
+    totalPurchases: "₹22,150",
     orders: 4,
-    outstanding: "\u20B91,500",
+    outstanding: "₹1,500",
     outstandingColor: "#3f4850",
     tier: "Regular",
   },
@@ -109,50 +89,89 @@ const CUSTOMERS = [
     initials: "PV",
     name: "Priya Verma",
     id: "CL-2209",
+    email: "priya.verma@example.com",
     phone: "+91 99001 88223",
     location: "Pune, MH",
-    totalPurchases: "\u20B92,10,300",
+    totalPurchases: "₹2,10,300",
     orders: 42,
-    outstanding: "\u20B942,500",
+    outstanding: "₹42,500",
     outstandingColor: "#ba1a1a",
     tier: "Platinum",
   },
   {
-    initials: "PV",
-    name: "Priya Verma",
-    id: "CL-2209",
-    phone: "+91 99001 88223",
-    location: "Pune, MH",
-    totalPurchases: "\u20B92,10,300",
-    orders: 42,
-    outstanding: "\u20B942,500",
-    outstandingColor: "#ba1a1a",
-    tier: "Platinum",
-  },
-  {
-    initials: "PV",
-    name: "Priya Verma",
-    id: "CL-2209",
-    phone: "+91 99001 88223",
-    location: "Pune, MH",
-    totalPurchases: "\u20B92,10,300",
-    orders: 42,
-    outstanding: "\u20B942,500",
-    outstandingColor: "#ba1a1a",
-    tier: "Platinum",
+    initials: "SG",
+    name: "Suresh Gupta",
+    id: "CL-1192",
+    email: "suresh.g@example.com",
+    phone: "+91 98112 33445",
+    location: "Kolkata, WB",
+    totalPurchases: "₹56,400",
+    orders: 18,
+    outstanding: "₹0",
+    outstandingColor: "#006947",
+    tier: "Gold",
   },
 ];
 
 export default function CustomerDirectoryPage() {
   const navigate = useNavigate();
+  const [customers] = useState(INITIAL_CUSTOMERS);
+  const [selectedTier, setSelectedTier] = useState("All");
+  const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [messagingCustomer, setMessagingCustomer] = useState(null);
+  const [messageText, setMessageText] = useState("");
   const itemsPerPage = 4;
 
-  const totalPages = Math.ceil(CUSTOMERS.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+  const filteredCustomers = useMemo(() => {
+    return customers.filter((c) => {
+      const matchTier = selectedTier === "All" || c.tier.toLowerCase() === selectedTier.toLowerCase();
+      const term = searchQuery.toLowerCase().trim();
+      const matchSearch =
+        !term ||
+        c.name.toLowerCase().includes(term) ||
+        c.phone.includes(term) ||
+        c.id.toLowerCase().includes(term) ||
+        c.location.toLowerCase().includes(term);
+      return matchTier && matchSearch;
+    });
+  }, [customers, selectedTier, searchQuery]);
 
-  const currentCustomers = CUSTOMERS.slice(startIndex, endIndex);
+  const totalPages = Math.max(1, Math.ceil(filteredCustomers.length / itemsPerPage));
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const currentCustomers = filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
+
+  const handleExportCSV = () => {
+    const headers = ["Customer ID", "Name", "Phone", "Email", "Location", "Purchases", "Orders", "Outstanding", "Tier"];
+    const rows = filteredCustomers.map((c) => [
+      `"${c.id}"`,
+      `"${c.name}"`,
+      `"${c.phone}"`,
+      `"${c.email}"`,
+      `"${c.location}"`,
+      `"${c.totalPurchases}"`,
+      c.orders,
+      `"${c.outstanding}"`,
+      `"${c.tier}"`,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `customers_directory_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleSendMessage = (e) => {
+    e.preventDefault();
+    if (!messageText.trim()) return;
+    alert(`Message dispatched to ${messagingCustomer.name} (${messagingCustomer.phone}):\n\n"${messageText}"`);
+    setMessagingCustomer(null);
+    setMessageText("");
+  };
 
   return (
     <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen">
@@ -161,10 +180,6 @@ export default function CustomerDirectoryPage() {
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .material-symbols-outlined { font-family: 'Material Symbols Outlined'; vertical-align: middle; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 10px; }
-        ::-webkit-scrollbar-thumb:hover { background: #cbd5e1; }
       `}</style>
 
       <Sidebar />
@@ -210,14 +225,45 @@ export default function CustomerDirectoryPage() {
           {/* Customer table */}
           <section className="bg-white rounded-xl shadow-sm border border-[#bfc7d2]/50 overflow-hidden">
             <div className="px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-[#bfc7d2]">
-              <h2 className="text-[20px] font-semibold">Customer Directory</h2>
-              <div className="flex items-center gap-2">
-                <button className="flex items-center gap-2 px-4 py-2 text-sm text-[#3f4850] bg-[#f2f4f6] rounded-lg border border-[#bfc7d2] hover:bg-[#e0e3e5] transition-colors">
-                  <span className="material-symbols-outlined text-[18px]">filter_list</span>
-                  Filter
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 text-sm text-[#3f4850] bg-[#f2f4f6] rounded-lg border border-[#bfc7d2] hover:bg-[#e0e3e5] transition-colors">
-                  <span className="material-symbols-outlined text-[18px]">download</span>
+              <div>
+                <h2 className="text-[20px] font-semibold text-[#191c1e]">Customer Directory</h2>
+                <p className="text-xs text-[#707881]">Search, view loyalty tiers, and message registered customers.</p>
+              </div>
+              <div className="flex flex-wrap items-center gap-3">
+                {/* Search input */}
+                <div className="flex items-center bg-[#f2f4f6] px-3 py-1.5 rounded-lg border border-[#bfc7d2]">
+                  <span className="material-symbols-outlined text-[#707881] text-[18px] mr-1.5">search</span>
+                  <input
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      setCurrentPage(1);
+                    }}
+                    placeholder="Search name, phone, ID..."
+                    className="bg-transparent border-none text-xs outline-none w-36 sm:w-48"
+                  />
+                </div>
+
+                {/* Tier filter */}
+                <select
+                  value={selectedTier}
+                  onChange={(e) => {
+                    setSelectedTier(e.target.value);
+                    setCurrentPage(1);
+                  }}
+                  className="px-3 py-1.5 text-xs text-[#3f4850] bg-[#f2f4f6] rounded-lg border border-[#bfc7d2] outline-none cursor-pointer"
+                >
+                  <option value="All">All Tiers</option>
+                  <option value="Platinum">Platinum</option>
+                  <option value="Gold">Gold</option>
+                  <option value="Regular">Regular</option>
+                </select>
+
+                <button
+                  onClick={handleExportCSV}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#3f4850] bg-[#f2f4f6] rounded-lg border border-[#bfc7d2] hover:bg-[#e0e3e5] transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">download</span>
                   Export
                 </button>
               </div>
@@ -241,7 +287,7 @@ export default function CustomerDirectoryPage() {
                       <td className="px-6 py-4">
                         <div className="flex items-center gap-3">
                           <div
-                            className="h-9 w-9 rounded-full flex items-center justify-center font-bold"
+                            className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm"
                             style={{ backgroundColor: `${AVATAR_COLORS[c.tier]}1A`, color: AVATAR_COLORS[c.tier] }}
                           >
                             {c.initials}
@@ -276,8 +322,12 @@ export default function CustomerDirectoryPage() {
                       </td>
                       <td className="px-6 py-4 text-right">
                         <div className="flex justify-end gap-2">
-                          <button className="p-2 text-[#006194] hover:bg-[#006194]/10 rounded-full transition-all" title="Message">
-                            <span className="material-symbols-outlined">chat</span>
+                          <button
+                            onClick={() => setMessagingCustomer(c)}
+                            className="p-2 text-[#006194] hover:bg-[#006194]/10 rounded-full transition-all cursor-pointer"
+                            title={`Send Message to ${c.name}`}
+                          >
+                            <span className="material-symbols-outlined text-[20px]">chat</span>
                           </button>
                           <button
                             onClick={() =>
@@ -285,7 +335,7 @@ export default function CustomerDirectoryPage() {
                                 state: { customer: c },
                               })
                             }
-                            className="px-3 py-1 bg-white border border-[#bfc7d2] rounded-lg text-sm hover:bg-[#f7f9fb] transition-all"
+                            className="px-3 py-1 bg-white border border-[#bfc7d2] rounded-lg text-xs font-semibold hover:bg-[#006194] hover:text-white transition-all cursor-pointer"
                           >
                             View Details
                           </button>
@@ -293,67 +343,53 @@ export default function CustomerDirectoryPage() {
                       </td>
                     </tr>
                   ))}
+                  {filteredCustomers.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-6 py-12 text-center text-sm text-[#707881]">
+                        No customers match the current search or tier filter.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
 
-            <div className="px-6 py-4 bg-[#f7f9fb] flex flex-col sm:flex-row justify-between items-center gap-4">
+            {/* Pagination */}
+            <div className="px-6 py-4 bg-[#f7f9fb] flex flex-col sm:flex-row justify-between items-center gap-4 border-t border-[#bfc7d2]">
               <p className="text-sm text-[#3f4850]">
-                Showing {CUSTOMERS.length === 0 ? 0 : startIndex + 1} to{" "}
-                {Math.min(endIndex, CUSTOMERS.length)} of {CUSTOMERS.length} customers
+                Showing {filteredCustomers.length === 0 ? 0 : startIndex + 1} to{" "}
+                {Math.min(startIndex + itemsPerPage, filteredCustomers.length)} of {filteredCustomers.length} customers
               </p>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1">
                 <button
                   onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                  className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#bfc7d2] hover:bg-[#f2f4f6] disabled:opacity-30"
+                  className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#bfc7d2] hover:bg-[#f2f4f6] disabled:opacity-30 cursor-pointer"
                   disabled={currentPage === 1}
                 >
-                  <span className="material-symbols-outlined text-[18px]">
-                    chevron_left
-                  </span>
+                  <span className="material-symbols-outlined text-[18px]">chevron_left</span>
                 </button>
 
-                <button
-                  onClick={() => setCurrentPage(1)}
-                  className={`h-8 w-8 flex items-center justify-center rounded-lg font-bold ${currentPage === 1
-                    ? "bg-[#006194] text-white"
-                    : "border border-[#bfc7d2] hover:bg-[#f2f4f6]"
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                  <button
+                    key={pageNum}
+                    onClick={() => setCurrentPage(pageNum)}
+                    className={`h-8 w-8 flex items-center justify-center rounded-lg font-bold text-sm cursor-pointer ${
+                      currentPage === pageNum
+                        ? "bg-[#006194] text-white"
+                        : "border border-[#bfc7d2] hover:bg-[#f2f4f6] text-[#3f4850]"
                     }`}
-                >
-                  1
-                </button>
+                  >
+                    {pageNum}
+                  </button>
+                ))}
 
                 <button
-                  onClick={() => setCurrentPage(2)}
-                  className={`h-8 w-8 flex items-center justify-center rounded-lg font-bold ${currentPage === 2
-                    ? "bg-[#006194] text-white"
-                    : "border border-[#bfc7d2] hover:bg-[#f2f4f6]"
-                    }`}
+                  onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                  className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#bfc7d2] hover:bg-[#f2f4f6] disabled:opacity-30 cursor-pointer"
+                  disabled={currentPage === totalPages || totalPages === 0}
                 >
-                  2
-                </button>
-
-                <button
-                  onClick={() => setCurrentPage(3)}
-                  className={`h-8 w-8 flex items-center justify-center rounded-lg font-bold ${currentPage === 3
-                    ? "bg-[#006194] text-white"
-                    : "border border-[#bfc7d2] hover:bg-[#f2f4f6]"
-                    }`}
-                >
-                  3
-                </button>
-
-                <button
-                  onClick={() =>
-                    setCurrentPage((prev) => Math.min(prev + 1, totalPages))
-                  }
-                  className="h-8 w-8 flex items-center justify-center rounded-lg border border-[#bfc7d2] hover:bg-[#f2f4f6] disabled:opacity-30"
-                  disabled={currentPage === totalPages}
-                >
-                  <span className="material-symbols-outlined text-[18px]">
-                    chevron_right
-                  </span>
+                  <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                 </button>
               </div>
             </div>
@@ -372,13 +408,72 @@ export default function CustomerDirectoryPage() {
             </div>
             <button
               onClick={() => navigate("/customer-report")}
-              className="group flex items-center gap-2 px-6 py-3 bg-[#006194] text-white rounded-lg font-bold hover:bg-[#007bb9] transition-all">
+              className="group flex items-center gap-2 px-6 py-3 bg-[#006194] text-white rounded-lg font-bold hover:bg-[#007bb9] transition-all cursor-pointer shadow-sm"
+            >
               Generate Customer Report
               <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">arrow_forward</span>
             </button>
           </footer>
         </div>
       </main>
+
+      {/* Quick Message Modal */}
+      {messagingCustomer && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl p-6 border border-[#bfc7d2] animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center mb-4 border-b pb-3">
+              <div>
+                <h3 className="font-bold text-base text-[#191c1e]">Message {messagingCustomer.name}</h3>
+                <p className="text-xs text-[#707881]">Direct SMS / WhatsApp communication</p>
+              </div>
+              <button
+                onClick={() => setMessagingCustomer(null)}
+                className="p-1 text-gray-500 hover:text-black rounded-full"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleSendMessage} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">Recipient Phone</label>
+                <input
+                  type="text"
+                  readOnly
+                  value={messagingCustomer.phone}
+                  className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm text-[#565e74]"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">Message Content</label>
+                <textarea
+                  required
+                  rows={4}
+                  placeholder={`Hi ${messagingCustomer.name}, your invoice or loyalty reward is ready...`}
+                  value={messageText}
+                  onChange={(e) => setMessageText(e.target.value)}
+                  className="w-full px-3 py-2 border border-[#bfc7d2] rounded-lg text-sm outline-none focus:border-[#006194] resize-none"
+                />
+              </div>
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#006194] text-white rounded-lg text-sm font-semibold hover:bg-[#007bb9] flex items-center justify-center gap-1.5 cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[18px]">send</span>
+                  Send Message
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setMessagingCustomer(null)}
+                  className="flex-1 py-2.5 bg-gray-100 text-[#3f4850] rounded-lg text-sm font-semibold hover:bg-gray-200 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

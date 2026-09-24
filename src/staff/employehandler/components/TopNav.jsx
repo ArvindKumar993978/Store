@@ -1,4 +1,5 @@
-import React from "react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 /*
   Quick color reference:
     #004870  -> primary
@@ -18,6 +19,8 @@ import React from "react";
 */
 
 const TopNav = ({ variant = "pill", onMobileMenuClick, avatarLabel = "Help" }) => {
+  const navigate = useNavigate();
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   if (variant === "bordered") {
     return (
       <header className="fixed top-0 right-0 w-full md:w-[calc(100%-280px)] h-[64px] bg-[#f7f9fb] border-b border-[#bfc7d2] flex justify-between items-center px-[24px] z-10">
@@ -41,12 +44,30 @@ const TopNav = ({ variant = "pill", onMobileMenuClick, avatarLabel = "Help" }) =
           </div>
         </div>
 
-        <div className="flex items-center gap-[16px]">
-          <button className="text-[#40474f] hover:text-[#004870] transition-colors p-[8px] rounded-full hover:bg-[#f2f4f6] active:scale-95">
+        <div className="flex items-center gap-[16px] relative">
+          <button 
+            onClick={() => setNotificationsOpen(!notificationsOpen)}
+            className="text-[#40474f] hover:text-[#004870] transition-colors p-[8px] rounded-full hover:bg-[#f2f4f6] active:scale-95 relative"
+            title="Notifications"
+          >
             <span className="material-symbols-outlined">notifications</span>
+            <span className="absolute top-[6px] right-[6px] w-[8px] h-[8px] bg-[#ba1a1a] rounded-full" />
           </button>
+
+          {notificationsOpen && (
+            <div className="absolute right-12 top-12 w-72 bg-white rounded-xl shadow-xl border border-[#bfc7d2] p-3 z-50 text-[13px]">
+              <div className="font-semibold text-[#191c1e] pb-2 border-b border-[#bfc7d2]">Live System Alerts</div>
+              <div className="py-2 text-[#40474f]">8 employees marked present this morning.</div>
+              <div className="py-2 text-[#40474f] border-t border-[#bfc7d2]">Payroll processing cycle is due in 2 days.</div>
+            </div>
+          )}
+
           <div className="w-px h-[24px] bg-[#bfc7d2]/50 hidden sm:block" />
-          <div className="flex items-center gap-[12px] cursor-pointer group">
+          <div 
+            onClick={() => navigate("/help")}
+            className="flex items-center gap-[12px] cursor-pointer group"
+            title="Help Desk"
+          >
             <div className="w-[32px] h-[32px] rounded-full bg-[#d7dff9] overflow-hidden border border-[#bfc7d2]/30">
               <img
                 alt="Admin User Profile"
@@ -76,15 +97,36 @@ const TopNav = ({ variant = "pill", onMobileMenuClick, avatarLabel = "Help" }) =
         />
       </div>
 
-      <div className="flex items-center gap-[16px]">
-        <button className="p-[8px] text-[#40474f] hover:bg-[#f2f4f6] rounded-full transition-colors relative">
+      <div className="flex items-center gap-[16px] relative">
+        <button 
+          onClick={() => setNotificationsOpen(!notificationsOpen)}
+          className="p-[8px] text-[#40474f] hover:bg-[#f2f4f6] rounded-full transition-colors relative"
+          title="Notifications"
+        >
           <span className="material-symbols-outlined">notifications</span>
           <span className="absolute top-[8px] right-[8px] w-[8px] h-[8px] bg-[#ba1a1a] rounded-full" />
         </button>
-        <button className="p-[8px] text-[#40474f] hover:bg-[#f2f4f6] rounded-full transition-colors">
+
+        {notificationsOpen && (
+          <div className="absolute right-16 top-12 w-72 bg-white rounded-xl shadow-xl border border-[#bfc7d2] p-3 z-50 text-[13px]">
+            <div className="font-semibold text-[#191c1e] pb-2 border-b border-[#bfc7d2]">System Alerts</div>
+            <div className="py-2 text-[#40474f]">128 staff clocked in today.</div>
+            <div className="py-2 text-[#40474f] border-t border-[#bfc7d2]">Pending payroll for October is ready to review.</div>
+          </div>
+        )}
+
+        <button 
+          onClick={() => navigate("/help")}
+          className="p-[8px] text-[#40474f] hover:bg-[#f2f4f6] rounded-full transition-colors"
+          title="Help & Support"
+        >
           <span className="material-symbols-outlined">help_outline</span>
         </button>
-        <div className="w-[32px] h-[32px] rounded-full overflow-hidden bg-[#e0e3e5] border border-[#bfc7d2]">
+        <div 
+          onClick={() => navigate("/settings")}
+          className="w-[32px] h-[32px] rounded-full overflow-hidden bg-[#e0e3e5] border border-[#bfc7d2] cursor-pointer hover:ring-2 hover:ring-[#004870] transition-all"
+          title="Settings"
+        >
           <img
             alt="Admin User Avatar"
             className="w-full h-full object-cover"

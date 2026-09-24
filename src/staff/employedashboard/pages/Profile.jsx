@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 
 const PHOTO_URL =
   "https://lh3.googleusercontent.com/aida-public/AB6AXuD4hZ-2TKl1S00wk5aRHGJKkyjasDiqmYPSW3aRAUAvzxcJ1EK12hUArZMF4Q9KdKO01KXYiOZLbvYusbTXhKzWd_tF0tLS564a9jtGnzbVS3RCPWRn5yi-3kdYcUK-OL4DEkSel9zQXsrev03y2ZIH6zIRoQo4PaZcGJqegXdC0tYLL_pz9PN6T6ehKMKQeFkgyJHOSgurHvwa5_xQ8BrecISvgYrWUU4BzTzOeQRABAqZptAuprHcow";
@@ -46,6 +46,9 @@ export default function Profile() {
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState(initialState);
   const [draft, setDraft] = useState(initialState);
+  const [photo, setPhoto] = useState(PHOTO_URL);
+  const [toast, setToast] = useState(null);
+  const fileInputRef = useRef(null);
 
   const set = (key) => (value) => setDraft((d) => ({ ...d, [key]: value }));
 
@@ -60,10 +63,30 @@ export default function Profile() {
   const save = () => {
     setForm(draft);
     setEditMode(false);
+    setToast("Profile settings updated successfully!");
+    setTimeout(() => setToast(null), 4000);
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      setPhoto(url);
+      setToast("Profile picture updated!");
+      setTimeout(() => setToast(null), 4000);
+    }
   };
 
   return (
-    <div>
+    <div className="relative">
+      {/* Toast Alert */}
+      {toast && (
+        <div className="fixed top-4 right-4 z-50 bg-[#004870] text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 animate-fade-in">
+          <span className="material-symbols-outlined text-[#86f2e4]">check_circle</span>
+          <span className="text-[14px] font-medium">{toast}</span>
+        </div>
+      )}
+
       {/* Header Section */}
       <div className="flex flex-col sm:flex-row justify-between sm:items-end gap-4 mb-8">
         <div>
@@ -117,13 +140,27 @@ export default function Profile() {
             </div>
             <div className="flex flex-col md:flex-row gap-8">
               <div className="flex flex-col items-center gap-3">
-                <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#eff4ff] group">
-                  <img src={PHOTO_URL} alt="Profile" className="w-full h-full object-cover" />
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handlePhotoUpload}
+                  accept="image/*"
+                  className="hidden"
+                />
+                <div 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-[#eff4ff] group cursor-pointer"
+                  title="Click to change photo"
+                >
+                  <img src={photo} alt="Profile" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-black/50 hidden group-hover:flex items-center justify-center cursor-pointer transition-opacity">
                     <span className="material-symbols-outlined text-[22px] text-white">photo_camera</span>
                   </div>
                 </div>
-                <button className="text-[12px] text-[#006194] hover:underline uppercase tracking-wider">
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  className="text-[12px] text-[#006194] hover:underline uppercase tracking-wider font-semibold"
+                >
                   Change Photo
                 </button>
               </div>

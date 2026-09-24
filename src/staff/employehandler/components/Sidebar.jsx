@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 /*
   Quick color reference:
     #004870  -> primary (deep blue)
@@ -11,10 +12,6 @@ import React from "react";
     #ffffff  -> surface-container-lowest (card/nav background)
     #bfc7d2  -> outline-variant (border color)
     #e6e8ea  -> surface-container-high (hover bg)
-
-  Shared across pages (Dashboard, Attendance Tracking, ...). Which link is
-  highlighted, the primary action button, and the bottom links are all
-  driven by props so every page can reuse this same file.
 */
 
 const navItems = [
@@ -27,13 +24,13 @@ const navItems = [
 
 const NavLink = ({ icon, label, active, onClick }) => (
   <li>
-    <a
-      href="#"
+    <button
+      type="button"
       onClick={(e) => {
         e.preventDefault();
         onClick?.();
       }}
-      className={`flex items-center gap-3 px-[16px] py-[12px] rounded-[8px] transition-colors active:scale-95 duration-200 ${
+      className={`w-full text-left flex items-center gap-3 px-[16px] py-[12px] rounded-[8px] transition-colors active:scale-95 duration-200 ${
         active
           ? "bg-[#d7dff9] text-[#5a6278] font-bold"
           : "text-[#40474f] hover:bg-[#e6e8ea]"
@@ -46,7 +43,7 @@ const NavLink = ({ icon, label, active, onClick }) => (
         {icon}
       </span>
       <span className="text-[14px]">{label}</span>
-    </a>
+    </button>
   </li>
 );
 
@@ -56,16 +53,35 @@ const Sidebar = ({
   subtitle = "Admin Terminal",
   showLogoBadge = true,
   forceVisible = false,
-  primaryAction = {
-    label: "Quick Record",
-    icon: "add",
-    className: "bg-[#004870] hover:bg-[#006194]",
-  },
+  primaryAction,
   secondaryLinks = [
     { icon: "settings", label: "Settings" },
     { icon: "logout", label: "Log Out" },
   ],
 }) => {
+  const navigate = useNavigate();
+
+  const handleSecondaryClick = (item) => {
+    if (item.onClick) {
+      item.onClick();
+      return;
+    }
+    if (item.label === "Settings") {
+      navigate("/settings");
+    } else if (item.label === "Log Out") {
+      navigate("/");
+    } else if (item.label === "Help") {
+      navigate("/help");
+    }
+  };
+
+  const action = primaryAction || {
+    label: "Quick Record",
+    icon: "add",
+    className: "bg-[#004870] hover:bg-[#006194]",
+    onClick: () => onNavigate?.("attendance"),
+  };
+
   return (
     <nav
       className={`${
@@ -73,7 +89,11 @@ const Sidebar = ({
       } fixed left-0 top-0 h-full w-[280px] bg-[#f7f9fb] flex-col p-[16px] shadow-sm z-20 border-r border-[#bfc7d2]`}
     >
       <div className="mb-[32px] px-[16px] py-[8px]">
-        <div className="flex items-center gap-[12px] mb-[24px]">
+        <div 
+          onClick={() => navigate("/")}
+          className="flex items-center gap-[12px] mb-[24px] cursor-pointer hover:opacity-80 transition-opacity"
+          title="Return to Main Portal"
+        >
           {showLogoBadge && (
             <div className="w-[40px] h-[40px] rounded-full bg-[#006194] flex items-center justify-center text-white font-bold">
               EL
@@ -89,15 +109,15 @@ const Sidebar = ({
           </div>
         </div>
 
-        {primaryAction && (
+        {action && (
           <button
-            onClick={primaryAction.onClick}
-            className={`w-full text-white py-[8px] px-[16px] rounded-[8px] text-[12px] font-semibold tracking-[0.05em] transition-colors shadow-sm flex items-center justify-center gap-2 mb-[24px] active:scale-95 ${primaryAction.className}`}
+            onClick={action.onClick || (() => onNavigate?.("attendance"))}
+            className={`w-full text-white py-[8px] px-[16px] rounded-[8px] text-[12px] font-semibold tracking-[0.05em] transition-colors shadow-sm flex items-center justify-center gap-2 mb-[24px] active:scale-95 ${action.className}`}
           >
             <span className="material-symbols-outlined text-[18px]">
-              {primaryAction.icon}
+              {action.icon}
             </span>
-            {primaryAction.label}
+            {action.label}
           </button>
         )}
       </div>
@@ -119,7 +139,12 @@ const Sidebar = ({
       <div className="mt-auto pt-[16px] border-t border-[#bfc7d2]">
         <ul className="space-y-[4px]">
           {secondaryLinks.map((item) => (
-            <NavLink key={item.label} icon={item.icon} label={item.label} />
+            <NavLink 
+              key={item.label} 
+              icon={item.icon} 
+              label={item.label} 
+              onClick={() => handleSecondaryClick(item)}
+            />
           ))}
         </ul>
       </div>

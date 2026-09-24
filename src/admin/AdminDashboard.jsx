@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import Topnav from "../component/Topnav";
 
@@ -83,9 +84,9 @@ const STATUS_STYLES = {
 };
 
 const QUICK_ACTIONS = [
-  { icon: "point_of_sale", bg: "#cce5ff", color: "#001d31", label: "New Sale", sub: "Process POS checkout" },
-  { icon: "shopping_bag", bg: "#89f5e7", color: "#00201d", label: "New Purchase", sub: "Restock inventory" },
-  { icon: "add_box", bg: "#ffdcc0", color: "#2d1600", label: "Add Product", sub: "List a new item" },
+  { icon: "point_of_sale", bg: "#cce5ff", color: "#001d31", label: "New Sale", sub: "Process POS checkout", path: "/billing" },
+  { icon: "shopping_bag", bg: "#89f5e7", color: "#00201d", label: "New Purchase", sub: "Restock inventory", path: "/CreatePurchaseOrder" },
+  { icon: "add_box", bg: "#ffdcc0", color: "#2d1600", label: "Add Product", sub: "List a new item", path: "/add-product" },
 ];
 
 const LOW_STOCK = [
@@ -96,6 +97,7 @@ const LOW_STOCK = [
 ];
 
 export default function AdminDashboard() {
+  const navigate = useNavigate();
   // Card hover lift + button press-scale (same behavior as the original <script>)
   useEffect(() => {
     const cards = document.querySelectorAll(".glass-card");
@@ -196,8 +198,13 @@ export default function AdminDashboard() {
           {/* Recent Transactions */}
           <div className="col-span-12 lg:col-span-8 glass-card rounded-xl shadow-sm flex flex-col">
             <div className="p-6 border-b border-[#bfc7d2]/30 flex justify-between items-center">
-              <h2 className="text-[18px]] font-semibold">Recent Transactions</h2>
-              <button className="text-[#006194] text-sm font-semibold hover:underline">View All</button>
+              <h2 className="text-[18px] font-semibold">Recent Transactions</h2>
+              <button
+                onClick={() => navigate("/sales")}
+                className="text-[#006194] text-sm font-semibold hover:underline cursor-pointer"
+              >
+                View All
+              </button>
             </div>
             <div className="overflow-x-auto flex-1">
               <table className="w-full text-left">
@@ -212,7 +219,11 @@ export default function AdminDashboard() {
                 </thead>
                 <tbody className="divide-y divide-[#bfc7d2]/20">
                   {TRANSACTIONS.map((tx) => (
-                    <tr key={tx.id} className="hover:bg-[#eff4ff] transition-colors">
+                    <tr
+                      key={tx.id}
+                      onClick={() => navigate("/sales")}
+                      className="hover:bg-[#eff4ff] transition-colors cursor-pointer"
+                    >
                       <td className="px-6 py-4 text-sm">{tx.date}</td>
                       <td className="px-6 py-4 text-base text-[#006194] font-bold">{tx.id}</td>
                       <td className="px-6 py-4 text-sm font-medium">{tx.customer}</td>
@@ -239,15 +250,16 @@ export default function AdminDashboard() {
           <div className="col-span-12 lg:col-span-4 space-y-6">
             {/* Quick actions */}
             <div className="glass-card rounded-xl p-6 shadow-sm">
-              <h2 className="text-[18px]] font-semibold mb-6">Quick Actions</h2>
+              <h2 className="text-[18px] font-semibold mb-6">Quick Actions</h2>
               <div className="grid grid-cols-1 gap-4">
                 {QUICK_ACTIONS.map((action) => (
                   <button
                     key={action.label}
-                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-[#e5eeff] transition-all border border-[#bfc7d2]/20"
+                    onClick={() => navigate(action.path)}
+                    className="flex items-center gap-4 p-4 rounded-xl hover:bg-[#e5eeff] transition-all border border-[#bfc7d2]/20 text-left cursor-pointer"
                   >
                     <div
-                      className="w-12 h-12 rounded-lg flex items-center justify-center"
+                      className="w-12 h-12 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: action.bg, color: action.color }}
                     >
                       <span className="material-symbols-outlined">{action.icon}</span>
@@ -264,7 +276,7 @@ export default function AdminDashboard() {
             {/* Low stock alerts */}
             <div className="glass-card rounded-xl p-6 shadow-sm border-l-4 border-[#ba1a1a]">
               <div className="flex justify-between items-center mb-6">
-                <h2 className="text-[18px]] font-semibold flex items-center gap-2">
+                <h2 className="text-[18px] font-semibold flex items-center gap-2">
                   <span className="material-symbols-outlined text-[#ba1a1a]">warning</span>
                   Low Stock
                 </h2>
@@ -284,13 +296,20 @@ export default function AdminDashboard() {
                         {item.note}
                       </p>
                     </div>
-                    <button className="p-2 text-[#006194] hover:bg-[#007bb9]/20 rounded-full transition-all">
+                    <button
+                      onClick={() => navigate("/CreatePurchaseOrder")}
+                      title="Restock this item"
+                      className="p-2 text-[#006194] hover:bg-[#007bb9]/20 rounded-full transition-all cursor-pointer"
+                    >
                       <span className="material-symbols-outlined">refresh</span>
                     </button>
                   </div>
                 ))}
               </div>
-              <button className="w-full mt-6 py-2 text-[#006194] text-sm font-semibold border border-[#006194]/20 rounded-lg hover:bg-[#006194] hover:text-white transition-all">
+              <button
+                onClick={() => navigate("/CreatePurchaseOrder")}
+                className="w-full mt-6 py-2 text-[#006194] text-sm font-semibold border border-[#006194]/20 rounded-lg hover:bg-[#006194] hover:text-white transition-all cursor-pointer"
+              >
                 Restock All Low Items
               </button>
             </div>
@@ -312,7 +331,7 @@ export default function AdminDashboard() {
                 <p className="text-sm text-[#3f4850] opacity-70">Need \u20B990,000 more to hit October target.</p>
               </div>
               <div className="absolute -right-4 -bottom-4 opacity-5 pointer-events-none">
-                <span className="material-symbols-outlined text-[[18px]] text-[#006194]">analytics</span>
+                <span className="material-symbols-outlined text-[18px] text-[#006194]">analytics</span>
               </div>
             </div>
           </div>

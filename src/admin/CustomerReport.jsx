@@ -1,24 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
-
-
-/*
-  EASY-TO-EDIT VERSION
-  --------------------
-  Colors as Tailwind arbitrary values, e.g. text-[#006194].
-
-  DATA:
-  - LOYALTY_TIERS: checkbox filter list (edit `checked` for defaults)
-  - DATA_POINTS: toggle switch list
-  - CUSTOMERS: rows shown in the report preview table
-  - RECENT_REPORTS: floating "Recent Reports" widget items
-
-  Toggling a loyalty-tier checkbox or a data-point switch briefly
-  fades the preview table (same "live refresh" flicker as the
-  original page's script). Clicking either export button shows a
-  real "Preparing... -> Ready!" sequence before resetting, same
-  timing as the original.
-*/
 
 const LOYALTY_TIERS = [
   { key: "platinum", label: "Platinum", icon: "workspace_premium", swatch: "#E5E4E2", checked: true },
@@ -47,29 +29,30 @@ const STATUS_BADGE = {
   Blocked: "bg-[#ffdad6] text-[#93000a]",
 };
 
-const CUSTOMERS = [
-  { name: "Amitav G.", id: "#CUS-9021", tier: "Platinum", lastOrder: "24 Oct 2023", spent: "\u20B9 84,200.00", outstanding: "\u20B9 0.00", status: "Active" },
-  { name: "Priya Sharma", id: "#CUS-4432", tier: "Gold", lastOrder: "12 Nov 2023", spent: "\u20B9 32,500.00", outstanding: "\u20B9 4,200.00", outstandingHighlight: true, status: "Active" },
-  { name: "Rahul Mehta", id: "#CUS-7781", tier: "Regular", lastOrder: "05 Sep 2023", spent: "\u20B9 12,000.00", outstanding: "\u20B9 0.00", status: "Idle" },
-  { name: "Vikram Singh", id: "#CUS-1209", tier: "Platinum", lastOrder: "19 Dec 2023", spent: "\u20B9 145,900.00", outstanding: "\u20B9 0.00", status: "Active" },
-  { name: "Sneha Kapoor", id: "#CUS-5541", tier: "Gold", lastOrder: "02 Dec 2023", spent: "\u20B9 28,400.00", outstanding: "\u20B9 12,000.00", outstandingHighlight: true, status: "Blocked" },
-  { name: "Deepak Iyer", id: "#CUS-3321", tier: "Regular", lastOrder: "15 Nov 2023", spent: "\u20B9 8,900.00", outstanding: "\u20B9 0.00", status: "Active" },
+const ALL_CUSTOMERS = [
+  { name: "Amitav G.", id: "#CUS-9021", tier: "Platinum", lastOrder: "24 Oct 2023", spent: "₹ 84,200.00", outstanding: "₹ 0.00", status: "Active" },
+  { name: "Priya Sharma", id: "#CUS-4432", tier: "Gold", lastOrder: "12 Nov 2023", spent: "₹ 32,500.00", outstanding: "₹ 4,200.00", outstandingHighlight: true, status: "Active" },
+  { name: "Rahul Mehta", id: "#CUS-7781", tier: "Regular", lastOrder: "05 Sep 2023", spent: "₹ 12,000.00", outstanding: "₹ 0.00", status: "Idle" },
+  { name: "Vikram Singh", id: "#CUS-1209", tier: "Platinum", lastOrder: "19 Dec 2023", spent: "₹ 145,900.00", outstanding: "₹ 0.00", status: "Active" },
+  { name: "Sneha Kapoor", id: "#CUS-5541", tier: "Gold", lastOrder: "02 Dec 2023", spent: "₹ 28,400.00", outstanding: "₹ 12,000.00", outstandingHighlight: true, status: "Blocked" },
+  { name: "Deepak Iyer", id: "#CUS-3321", tier: "Regular", lastOrder: "15 Nov 2023", spent: "₹ 8,900.00", outstanding: "₹ 0.00", status: "Active" },
 ];
 
 const RECENT_REPORTS = [
-  { icon: "file_download", iconBg: "#ffdcc0", iconColor: "#2d1600", name: "Yearly_Revenue_2023.xlsx", meta: "2 mins ago \u2022 12MB" },
-  { icon: "picture_as_pdf", iconBg: "#dae2fd", iconColor: "#131b2e", name: "Tax_Audit_Segment.pdf", meta: "1 hour ago \u2022 4.5MB", faded: true },
+  { icon: "file_download", iconBg: "#ffdcc0", iconColor: "#2d1600", name: "Yearly_Revenue_2023.csv", meta: "2 mins ago • 12MB" },
+  { icon: "picture_as_pdf", iconBg: "#dae2fd", iconColor: "#131b2e", name: "Tax_Audit_Segment.pdf", meta: "1 hour ago • 4.5MB", faded: true },
 ];
 
 export default function CustomerReport() {
+  const navigate = useNavigate();
   const [tiers, setTiers] = useState(LOYALTY_TIERS);
   const [dataPoints, setDataPoints] = useState(DATA_POINTS);
   const [tableFading, setTableFading] = useState(false);
-  const [exportState, setExportState] = useState({ pdf: "idle", excel: "idle" }); // idle | preparing | ready
+  const [exportState, setExportState] = useState({ pdf: "idle", excel: "idle" });
 
   const flashTable = () => {
     setTableFading(true);
-    setTimeout(() => setTableFading(false), 400);
+    setTimeout(() => setTableFading(false), 300);
   };
 
   const toggleTier = (key) => {
@@ -82,14 +65,53 @@ export default function CustomerReport() {
     flashTable();
   };
 
-  const handleExport = (type) => {
-    setExportState((prev) => ({ ...prev, [type]: "preparing" }));
+  // Filter customers by selected tiers
+  const filteredCustomers = useMemo(() => {
+    const checkedTiers = tiers.filter((t) => t.checked).map((t) => t.label.toLowerCase());
+    return ALL_CUSTOMERS.filter((c) => checkedTiers.includes(c.tier.toLowerCase()));
+  }, [tiers]);
+
+  const handleExportPDF = () => {
+    setExportState((prev) => ({ ...prev, pdf: "preparing" }));
     setTimeout(() => {
-      setExportState((prev) => ({ ...prev, [type]: "ready" }));
+      setExportState((prev) => ({ ...prev, pdf: "ready" }));
+      window.print();
       setTimeout(() => {
-        setExportState((prev) => ({ ...prev, [type]: "idle" }));
-      }, 2000);
-    }, 1500);
+        setExportState((prev) => ({ ...prev, pdf: "idle" }));
+      }, 1500);
+    }, 800);
+  };
+
+  const handleExportExcel = () => {
+    setExportState((prev) => ({ ...prev, excel: "preparing" }));
+    setTimeout(() => {
+      setExportState((prev) => ({ ...prev, excel: "ready" }));
+
+      const headers = ["Customer Name", "ID", "Tier", "Last Order", "Total Spent", "Outstanding", "Status"];
+      const rows = filteredCustomers.map((c) => [
+        `"${c.name}"`,
+        `"${c.id}"`,
+        `"${c.tier}"`,
+        `"${c.lastOrder}"`,
+        `"${c.spent}"`,
+        `"${c.outstanding}"`,
+        `"${c.status}"`,
+      ]);
+
+      const csvContent =
+        "data:text/csv;charset=utf-8," +
+        [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      const link = document.createElement("a");
+      link.setAttribute("href", encodeURI(csvContent));
+      link.setAttribute("download", `customer_bulk_report_${new Date().toISOString().slice(0, 10)}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        setExportState((prev) => ({ ...prev, excel: "idle" }));
+      }, 1500);
+    }, 800);
   };
 
   return (
@@ -99,9 +121,6 @@ export default function CustomerReport() {
         @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
         body { font-family: 'Inter', sans-serif; }
         .material-symbols-outlined { font-family: 'Material Symbols Outlined'; vertical-align: middle; }
-        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
-        .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #bfc7d2; border-radius: 10px; }
       `}</style>
 
       <Sidebar />
@@ -111,7 +130,12 @@ export default function CustomerReport() {
         <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
             <nav className="flex items-center gap-2 text-[#3f4850] text-xs font-semibold mb-2">
-              <span>Customers</span>
+              <button
+                onClick={() => navigate("/customer")}
+                className="hover:text-[#006194] hover:underline cursor-pointer"
+              >
+                Customers
+              </button>
               <span className="material-symbols-outlined text-[16px]">chevron_right</span>
               <span className="text-[#006194]">Bulk Reports</span>
             </nav>
@@ -120,46 +144,46 @@ export default function CustomerReport() {
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => handleExport("pdf")}
+              onClick={handleExportPDF}
               disabled={exportState.pdf !== "idle"}
-              className="bg-[#e0e3e5] px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 shadow-sm disabled:opacity-70"
+              className="bg-[#e0e3e5] px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 shadow-sm disabled:opacity-70 cursor-pointer hover:bg-gray-300"
             >
               {exportState.pdf === "preparing" ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin">autorenew</span>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">autorenew</span>
                   Preparing...
                 </>
               ) : exportState.pdf === "ready" ? (
                 <>
-                  <span className="material-symbols-outlined">check_circle</span>
+                  <span className="material-symbols-outlined text-[18px] text-emerald-600">check_circle</span>
                   Ready!
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined">description</span>
+                  <span className="material-symbols-outlined text-[18px]">description</span>
                   Export to PDF
                 </>
               )}
             </button>
             <button
-              onClick={() => handleExport("excel")}
+              onClick={handleExportExcel}
               disabled={exportState.excel !== "idle"}
-              className="bg-[#006194] text-white px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 shadow-sm disabled:opacity-70"
+              className="bg-[#006194] text-white px-6 py-2.5 rounded-lg text-sm font-semibold flex items-center gap-2 transition-all active:scale-95 shadow-sm disabled:opacity-70 cursor-pointer hover:bg-[#007bb9]"
             >
               {exportState.excel === "preparing" ? (
                 <>
-                  <span className="material-symbols-outlined animate-spin">autorenew</span>
+                  <span className="material-symbols-outlined animate-spin text-[18px]">autorenew</span>
                   Preparing...
                 </>
               ) : exportState.excel === "ready" ? (
                 <>
-                  <span className="material-symbols-outlined">check_circle</span>
-                  Ready!
+                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                  Exported!
                 </>
               ) : (
                 <>
-                  <span className="material-symbols-outlined">table_chart</span>
-                  Export to Excel
+                  <span className="material-symbols-outlined text-[18px]">table_chart</span>
+                  Export to Excel / CSV
                 </>
               )}
             </button>
@@ -186,12 +210,12 @@ export default function CustomerReport() {
                         className="w-8 h-8 rounded-full flex items-center justify-center"
                         style={{ backgroundColor: tier.swatch }}
                       >
-                        <span className="material-symbols-outlined text-[18px]">{tier.icon}</span>
+                        <span className="material-symbols-outlined text-[18px] text-gray-700">{tier.icon}</span>
                       </div>
                       <span className="text-sm font-medium">{tier.label}</span>
                     </div>
                     <input
-                      className="w-5 h-5 rounded border-[#707881] text-[#006194] focus:ring-[#006194]"
+                      className="w-5 h-5 rounded border-[#707881] text-[#006194] focus:ring-[#006194] cursor-pointer"
                       type="checkbox"
                       checked={tier.checked}
                       onChange={() => toggleTier(tier.key)}
@@ -211,7 +235,7 @@ export default function CustomerReport() {
                 <div>
                   <label className="text-xs text-[#3f4850] block mb-1">Activity From</label>
                   <input
-                    className="w-full rounded-lg border-[#bfc7d2] focus:border-[#006194] focus:ring-[#006194] text-sm"
+                    className="w-full rounded-lg border border-[#bfc7d2] px-3 py-2 text-sm outline-none focus:border-[#006194]"
                     type="date"
                     defaultValue="2023-01-01"
                   />
@@ -219,7 +243,7 @@ export default function CustomerReport() {
                 <div>
                   <label className="text-xs text-[#3f4850] block mb-1">Activity To</label>
                   <input
-                    className="w-full rounded-lg border-[#bfc7d2] focus:border-[#006194] focus:ring-[#006194] text-sm"
+                    className="w-full rounded-lg border border-[#bfc7d2] px-3 py-2 text-sm outline-none focus:border-[#006194]"
                     type="date"
                     defaultValue="2023-12-31"
                   />
@@ -233,8 +257,8 @@ export default function CustomerReport() {
                         onClick={flashTable}
                         className={
                           i === 0
-                            ? "px-3 py-1 rounded-full border border-[#006194] text-[#006194] text-xs font-semibold hover:bg-[#cce5ff] transition-colors"
-                            : "px-3 py-1 rounded-full border border-[#bfc7d2] text-[#3f4850] text-xs font-semibold hover:bg-[#f2f4f6] transition-colors"
+                            ? "px-3 py-1 rounded-full border border-[#006194] text-[#006194] text-xs font-semibold hover:bg-[#cce5ff] transition-colors cursor-pointer"
+                            : "px-3 py-1 rounded-full border border-[#bfc7d2] text-[#3f4850] text-xs font-semibold hover:bg-[#f2f4f6] transition-colors cursor-pointer"
                         }
                       >
                         {preset}
@@ -256,6 +280,7 @@ export default function CustomerReport() {
                   <div key={dp.key} className="flex items-center justify-between">
                     <span className="text-sm">{dp.label}</span>
                     <button
+                      type="button"
                       onClick={() => toggleDataPoint(dp.key)}
                       className="relative inline-flex items-center cursor-pointer"
                       aria-label={`Toggle ${dp.label}`}
@@ -266,7 +291,7 @@ export default function CustomerReport() {
                       >
                         <div
                           className="absolute top-[2px] left-[2px] bg-white rounded-full h-5 w-5 transition-all"
-                          style={{ transform: dp.checked ? "translateX(100%)" : "translateX(0)" }}
+                          style={{ transform: dp.checked ? "translateX(20px)" : "translateX(0)" }}
                         />
                       </div>
                     </button>
@@ -282,14 +307,14 @@ export default function CustomerReport() {
               <div className="p-6 border-b border-[#bfc7d2]/30 flex items-center justify-between">
                 <div>
                   <h3 className="text-[20px] font-semibold">Report Preview</h3>
-                  <p className="text-[#3f4850] text-xs">Showing top 50 matches based on current filters</p>
+                  <p className="text-[#3f4850] text-xs">Showing {filteredCustomers.length} matches based on current filters</p>
                 </div>
                 <span className="px-3 py-1 bg-[#00855b] text-white rounded-full text-xs font-semibold">
                   Live Sync Active
                 </span>
               </div>
 
-              <div className="flex-1 overflow-x-auto custom-scrollbar">
+              <div className="flex-1 overflow-x-auto">
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="bg-[#f2f4f6] text-xs text-[#3f4850]">
@@ -305,7 +330,7 @@ export default function CustomerReport() {
                     className="text-sm divide-y divide-[#bfc7d2]/20 transition-opacity duration-200"
                     style={{ opacity: tableFading ? 0.4 : 1 }}
                   >
-                    {CUSTOMERS.map((c) => (
+                    {filteredCustomers.map((c) => (
                       <tr key={c.id} className="hover:bg-[#f7f9fb] transition-colors">
                         <td className="p-4">
                           <div className="font-semibold">{c.name}</div>
@@ -314,14 +339,14 @@ export default function CustomerReport() {
                         <td className="p-4">
                           <span
                             className="px-2 py-1 rounded-lg text-xs font-semibold"
-                            style={{ backgroundColor: TIER_BADGE[c.tier].bg, color: TIER_BADGE[c.tier].text }}
+                            style={{ backgroundColor: TIER_BADGE[c.tier]?.bg, color: TIER_BADGE[c.tier]?.text }}
                           >
                             {c.tier}
                           </span>
                         </td>
                         <td className="p-4">{c.lastOrder}</td>
-                        <td className="p-4">{c.spent}</td>
-                        <td className={`p-4 ${c.outstandingHighlight ? "text-[#ba1a1a]" : ""}`}>{c.outstanding}</td>
+                        <td className="p-4 font-medium">{c.spent}</td>
+                        <td className={`p-4 font-semibold ${c.outstandingHighlight ? "text-[#ba1a1a]" : ""}`}>{c.outstanding}</td>
                         <td className="p-4">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${STATUS_BADGE[c.status]}`}>
                             {c.status}
@@ -329,6 +354,13 @@ export default function CustomerReport() {
                         </td>
                       </tr>
                     ))}
+                    {filteredCustomers.length === 0 && (
+                      <tr>
+                        <td colSpan={6} className="p-12 text-center text-sm text-[#707881]">
+                          No customers match the selected loyalty tier filter.
+                        </td>
+                      </tr>
+                    )}
                   </tbody>
                 </table>
               </div>
@@ -336,20 +368,11 @@ export default function CustomerReport() {
               <div className="p-4 bg-[#f2f4f6] border-t border-[#bfc7d2]/30 flex items-center justify-between">
                 <div className="flex items-center gap-4 text-[#3f4850] text-xs">
                   <span>
-                    Total Rows: <strong>1,248</strong>
+                    Total Active Customers: <strong>{ALL_CUSTOMERS.length}</strong>
                   </span>
                   <span>
-                    Filtered: <strong>412</strong>
+                    Filtered Rows: <strong>{filteredCustomers.length}</strong>
                   </span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <button className="p-2 rounded hover:bg-[#e0e3e5] transition-colors">
-                    <span className="material-symbols-outlined">chevron_left</span>
-                  </button>
-                  <span className="text-xs">Page 1 of 9</span>
-                  <button className="p-2 rounded hover:bg-[#e0e3e5] transition-colors">
-                    <span className="material-symbols-outlined">chevron_right</span>
-                  </button>
                 </div>
               </div>
             </div>
@@ -357,7 +380,7 @@ export default function CustomerReport() {
         </div>
 
         {/* Floating recent reports widget */}
-        <div className="fixed bottom-6 right-6 w-80 bg-white/80 backdrop-blur-md p-4 rounded-xl shadow-lg border border-[#bfc7d2]/50 hidden xl:block">
+        <div className="fixed bottom-6 right-6 w-80 bg-white/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-[#bfc7d2]/50 hidden xl:block">
           <div className="flex items-center justify-between mb-3">
             <h4 className="text-xs font-bold">Recent Reports</h4>
             <span className="material-symbols-outlined text-[#006194] text-[20px]">history</span>
@@ -366,6 +389,7 @@ export default function CustomerReport() {
             {RECENT_REPORTS.map((report) => (
               <div
                 key={report.name}
+                onClick={handleExportExcel}
                 className={`flex items-start gap-3 p-2 rounded-lg hover:bg-[#f2f4f6] transition-colors cursor-pointer ${report.faded ? "opacity-70" : ""}`}
               >
                 <div
@@ -375,14 +399,17 @@ export default function CustomerReport() {
                   <span className="material-symbols-outlined text-[18px]">{report.icon}</span>
                 </div>
                 <div>
-                  <p className="text-sm leading-tight">{report.name}</p>
+                  <p className="text-sm font-medium leading-tight">{report.name}</p>
                   <p className="text-[10px] text-[#3f4850]">{report.meta}</p>
                 </div>
               </div>
             ))}
           </div>
-          <button className="w-full mt-3 py-2 text-center text-[#006194] text-xs font-semibold border-t border-[#bfc7d2]/30 pt-3">
-            View All Downloads
+          <button
+            onClick={() => navigate("/sales")}
+            className="w-full mt-3 py-2 text-center text-[#006194] text-xs font-semibold border-t border-[#bfc7d2]/30 pt-3 hover:underline cursor-pointer"
+          >
+            View All Transaction Ledger
           </button>
         </div>
       </main>
