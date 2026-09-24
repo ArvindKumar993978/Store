@@ -1,25 +1,48 @@
-import React from "react";
+import React, { useState } from "react";
 
 const HISTORY = [
   {
     period: "October 2023",
+    year: "2023",
     datePaid: "Oct 25, 2023",
     gross: "$5,240.00",
+    basic: "$4,200.00",
+    allowances: "$1,040.00",
+    deductions: "$1,180.50",
     net: "$4,059.50",
     status: "Paid",
   },
   {
     period: "September 2023",
+    year: "2023",
     datePaid: "Sep 25, 2023",
     gross: "$5,240.00",
+    basic: "$4,200.00",
+    allowances: "$1,040.00",
+    deductions: "$1,207.90",
     net: "$4,032.10",
     status: "Paid",
   },
   {
     period: "August 2023",
+    year: "2023",
     datePaid: "Aug 25, 2023",
     gross: "$5,100.00",
+    basic: "$4,100.00",
+    allowances: "$1,000.00",
+    deductions: "$1,141.25",
     net: "$3,958.75",
+    status: "Paid",
+  },
+  {
+    period: "December 2022",
+    year: "2022",
+    datePaid: "Dec 24, 2022",
+    gross: "$4,900.00",
+    basic: "$4,000.00",
+    allowances: "$900.00",
+    deductions: "$1,100.00",
+    net: "$3,800.00",
     status: "Paid",
   },
 ];
@@ -38,6 +61,41 @@ function StatusPill({ status }) {
 }
 
 export default function Payslips() {
+  const [search, setSearch] = useState("");
+  const [yearFilter, setYearFilter] = useState("All");
+  const [selectedSlip, setSelectedSlip] = useState(null);
+
+  const filteredHistory = HISTORY.filter((row) => {
+    const matchesYear = yearFilter === "All" || row.year === yearFilter;
+    const matchesSearch =
+      row.period.toLowerCase().includes(search.toLowerCase()) ||
+      row.datePaid.toLowerCase().includes(search.toLowerCase()) ||
+      row.net.toLowerCase().includes(search.toLowerCase());
+    return matchesYear && matchesSearch;
+  });
+
+  const handleDownloadAll = () => {
+    const headers = ["Period", "Date Paid", "Gross Earnings", "Deductions", "Net Pay", "Status"];
+    const rows = filteredHistory.map((r) => [
+      r.period,
+      r.datePaid,
+      `"${r.gross}"`,
+      `"${r.deductions}"`,
+      `"${r.net}"`,
+      r.status,
+    ]);
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `payslips_history_${yearFilter}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <>
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
@@ -49,14 +107,24 @@ export default function Payslips() {
             View and download your payslips and compensation details.
           </p>
         </div>
-        <div className="flex gap-3">
-          <button className="px-4 py-2 border border-[#bfc7d2] rounded-lg text-[12px] font-medium text-[#191c1e] hover:bg-[#eff4ff] transition-colors flex items-center gap-2">
-            <span className="material-symbols-outlined text-[16px]">filter_list</span>
-            Filter Year
-          </button>
-          <button className="px-4 py-2 bg-[#006194] text-white rounded-lg text-[12px] font-medium hover:bg-[#004870] active:scale-95 transition-all flex items-center gap-2 shadow-sm">
+        <div className="flex gap-3 items-center">
+          <div className="relative">
+            <select
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              className="px-3 py-2 border border-[#bfc7d2] rounded-lg text-[13px] font-medium text-[#191c1e] bg-white hover:bg-[#eff4ff] focus:outline-none focus:ring-2 focus:ring-[#006194]"
+            >
+              <option value="All">All Years</option>
+              <option value="2023">2023</option>
+              <option value="2022">2022</option>
+            </select>
+          </div>
+          <button 
+            onClick={handleDownloadAll}
+            className="px-4 py-2 bg-[#006194] text-white rounded-lg text-[12px] font-medium hover:bg-[#004870] active:scale-95 transition-all flex items-center gap-2 shadow-sm"
+          >
             <span className="material-symbols-outlined text-[16px]">download</span>
-            Download All
+            Download All (CSV)
           </button>
         </div>
       </div>
@@ -99,7 +167,10 @@ export default function Payslips() {
             </div>
           </div>
           <div className="mt-6 pt-4 border-t border-[#bfc7d2] flex justify-end">
-            <button className="text-[#006194] text-[12px] font-medium hover:underline flex items-center gap-1">
+            <button 
+              onClick={() => setSelectedSlip(HISTORY[0])}
+              className="text-[#006194] text-[13px] font-semibold hover:underline flex items-center gap-1"
+            >
               View Detailed Breakdown
               <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
             </button>
@@ -130,12 +201,14 @@ export default function Payslips() {
       <div className="bg-white rounded-xl shadow-sm overflow-hidden border border-[#bfc7d2]">
         <div className="p-6 border-b border-[#bfc7d2] flex justify-between items-center">
           <h3 className="text-[16px] font-semibold text-[#191c1e]">Payslip History</h3>
-          <div className="relative hidden sm:block">
+          <div className="relative">
             <span className="material-symbols-outlined text-[18px] absolute left-3 top-1/2 -translate-y-1/2 text-[#40474f]">
               search
             </span>
             <input
-              className="h-[40px] pl-10 pr-4 rounded-lg bg-[#eff4ff] border-none focus:ring-2 focus:ring-[#006194] text-[14px] w-64 placeholder:text-[#40474f]"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="h-[40px] pl-10 pr-4 rounded-lg bg-[#eff4ff] border border-[#bfc7d2] focus:ring-2 focus:ring-[#006194] text-[14px] w-64 placeholder:text-[#40474f] outline-none"
               placeholder="Search records..."
               type="text"
             />
@@ -167,7 +240,7 @@ export default function Payslips() {
               </tr>
             </thead>
             <tbody className="text-[14px] bg-white">
-              {HISTORY.map((row) => (
+              {filteredHistory.map((row) => (
                 <tr key={row.period} className="hover:bg-[#eff4ff] transition-colors border-b border-[#bfc7d2] last:border-b-0">
                   <td className="pl-6 py-3">
                     <span className="material-symbols-outlined text-[18px] text-[#bfc7d2]">description</span>
@@ -180,16 +253,103 @@ export default function Payslips() {
                     <StatusPill status={row.status} />
                   </td>
                   <td className="py-3 text-right pr-6">
-                    <button className="text-[#5a6278] hover:text-[#006194] transition-colors">
+                    <button 
+                      onClick={() => setSelectedSlip(row)}
+                      className="text-[#5a6278] hover:text-[#006194] transition-colors p-1.5 rounded-lg hover:bg-[#eff4ff]"
+                      title="View Payslip Details"
+                    >
                       <span className="material-symbols-outlined text-[18px]">visibility</span>
                     </button>
                   </td>
                 </tr>
               ))}
+              {filteredHistory.length === 0 && (
+                <tr>
+                  <td colSpan="7" className="p-8 text-center text-[#707881]">
+                    No payslips matched your criteria.
+                  </td>
+                </tr>
+              )}
             </tbody>
           </table>
         </div>
       </div>
+
+      {/* Detailed Breakdown Modal */}
+      {selectedSlip && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg p-6 relative">
+            <div className="flex justify-between items-start pb-4 border-b border-[#bfc7d2]">
+              <div>
+                <h3 className="text-[18px] font-bold text-[#191c1e]">
+                  Salary Slip &bull; {selectedSlip.period}
+                </h3>
+                <p className="text-[12px] text-[#40474f]">Alex Carter &bull; Employee ID: #EMP-8472</p>
+              </div>
+              <button
+                onClick={() => setSelectedSlip(null)}
+                className="text-[#40474f] hover:text-[#006194] p-1 rounded-lg"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+
+            <div className="py-4 space-y-4 text-[14px]">
+              <div className="bg-[#eff4ff] p-3 rounded-xl flex justify-between items-center">
+                <span className="text-[#40474f]">Payment Status</span>
+                <span className="font-semibold text-[#006f66] bg-[#86f2e4] px-2.5 py-0.5 rounded-full text-[12px]">
+                  {selectedSlip.status} on {selectedSlip.datePaid}
+                </span>
+              </div>
+
+              <div className="space-y-2 border-b border-[#bfc7d2] pb-3">
+                <p className="text-[12px] uppercase font-bold text-[#707881]">Earnings Breakdown</p>
+                <div className="flex justify-between text-[#191c1e]">
+                  <span>Basic Salary</span>
+                  <span className="font-medium">{selectedSlip.basic || "$4,200.00"}</span>
+                </div>
+                <div className="flex justify-between text-[#191c1e]">
+                  <span>HRA &amp; Allowances</span>
+                  <span className="font-medium">{selectedSlip.allowances || "$1,040.00"}</span>
+                </div>
+                <div className="flex justify-between font-bold text-[#191c1e] pt-1">
+                  <span>Gross Earnings</span>
+                  <span>{selectedSlip.gross}</span>
+                </div>
+              </div>
+
+              <div className="space-y-2 border-b border-[#bfc7d2] pb-3">
+                <p className="text-[12px] uppercase font-bold text-[#707881]">Deductions</p>
+                <div className="flex justify-between text-[#ba1a1a]">
+                  <span>PF &amp; Income Tax (TDS)</span>
+                  <span>{selectedSlip.deductions}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center text-[18px] font-bold text-[#006194] pt-1">
+                <span>Net Credited</span>
+                <span className="text-[22px]">{selectedSlip.net}</span>
+              </div>
+            </div>
+
+            <div className="pt-4 border-t border-[#bfc7d2] flex justify-end gap-3">
+              <button
+                onClick={() => setSelectedSlip(null)}
+                className="px-4 py-2 border border-[#bfc7d2] rounded-lg text-[13px] font-medium hover:bg-[#eff4ff]"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => window.print()}
+                className="px-4 py-2 bg-[#006194] text-white rounded-lg text-[13px] font-semibold flex items-center gap-1.5 hover:bg-[#004870]"
+              >
+                <span className="material-symbols-outlined text-[16px]">print</span>
+                Print Payslip
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

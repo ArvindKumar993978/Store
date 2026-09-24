@@ -1,13 +1,32 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 
 export default function Billingdetails() {
-  const [gstEnabled, setGstEnabled] = useState(false);
+  const navigate = useNavigate();
+  const [gstEnabled, setGstEnabled] = useState(true);
+  const [accountHolder, setAccountHolder] = useState("Rajesh Kumar Enterprises");
+  const [bankName, setBankName] = useState("HDFC Bank");
+  const [accountNumber, setAccountNumber] = useState("987654321012");
+  const [ifsc, setIfsc] = useState("HDFC0001234");
+  const [gstin, setGstin] = useState("22AAAAA0000A1Z5");
+  const [pan, setPan] = useState("ABCDE1234F");
+  const [currency, setCurrency] = useState("INR");
+  const [invoicePrefix, setInvoicePrefix] = useState("INV-");
+  const [terms, setTerms] = useState(
+    "1. Payments are due within 15 days.\n2. Please quote invoice number on all correspondence.\n3. Goods once sold will not be taken back."
+  );
   const [showToast, setShowToast] = useState(false);
 
   const handleSave = () => {
     setShowToast(true);
     setTimeout(() => setShowToast(false), 3000);
+  };
+
+  const handleDiscard = () => {
+    if (window.confirm("Discard changes and return to settings?")) {
+      navigate("/settings");
+    }
   };
 
   return (
@@ -32,22 +51,39 @@ export default function Billingdetails() {
               Bank &amp; Billing Details
             </h2>
             <nav className="flex text-[#3f4850] text-[12px] gap-2 items-center mt-1">
-              <span>Settings</span>
+              <button
+                onClick={() => navigate("/settings")}
+                className="hover:text-[#006194] hover:underline cursor-pointer"
+              >
+                Settings
+              </button>
               <span className="material-symbols-outlined text-[14px]">chevron_right</span>
               <span className="text-[#006194] font-semibold">Financial Configuration</span>
             </nav>
           </div>
           <div className="flex items-center gap-4">
-            <button className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors">
+            <button
+              onClick={() => navigate("/help")}
+              className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors cursor-pointer"
+              title="Help & Support"
+            >
               <span className="material-symbols-outlined">help</span>
             </button>
-            <button className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors">
+            <button
+              onClick={() => navigate("/settings")}
+              className="p-2 text-[#3f4850] hover:text-[#006194] transition-colors cursor-pointer"
+              title="Settings"
+            >
               <span className="material-symbols-outlined">settings</span>
             </button>
-            <div className="h-8 w-8 rounded-full overflow-hidden border border-[#bfc7d2]">
+            <div
+              onClick={() => navigate("/settings")}
+              className="h-8 w-8 rounded-full overflow-hidden border border-[#bfc7d2] cursor-pointer hover:ring-2 hover:ring-[#006194]"
+              title="Profile"
+            >
               <img
                 className="w-full h-full object-cover"
-                alt="A professional headshot of a modern Indian business owner in a clean office environment, high-key lighting, corporate minimalist aesthetic, looking friendly and confident. The background is softly blurred with tones of blue and white."
+                alt="Business owner"
                 src="https://lh3.googleusercontent.com/aida-public/AB6AXuBQ3twhDVOjWfK9VwUmu0TiZqVDzBQQJGRn0xDjjtf_hrSwB9idfbrH7L4j8htaeRMoQOuXm0QNxoH6dqyejhSWi-8AyrYGYLMR3bszj2LKXZsa2ZZNXiBrDow3fHwGbAmFfruA4J4Xdn5R-mnCLR-ON1vKOf1wvkEj4VauQHBFSpqalJItNzFN9D7bGAI248Gsrtp0i7HeNm9tr4oapgIz6qyOUTklSAfW1fNT19eoGn2mblQl35fypIIkcXq3FvAoSNvZJ2C1uWjz"
               />
             </div>
@@ -84,6 +120,8 @@ export default function Billingdetails() {
                       Account Holder Name
                     </label>
                     <input
+                      value={accountHolder}
+                      onChange={(e) => setAccountHolder(e.target.value)}
                       className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] input-focus-ring transition-all"
                       placeholder="e.g., Rajesh Kumar Enterprises"
                       type="text"
@@ -94,6 +132,8 @@ export default function Billingdetails() {
                       Bank Name
                     </label>
                     <input
+                      value={bankName}
+                      onChange={(e) => setBankName(e.target.value)}
                       className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] input-focus-ring transition-all"
                       placeholder="e.g., HDFC Bank"
                       type="text"
@@ -104,9 +144,10 @@ export default function Billingdetails() {
                       Account Number
                     </label>
                     <input
+                      value={accountNumber}
+                      onChange={(e) => setAccountNumber(e.target.value)}
                       className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] font-medium input-focus-ring transition-all"
-                      type="password"
-                      defaultValue="987654321012"
+                      type="text"
                     />
                   </div>
                   <div className="space-y-1.5">
@@ -114,6 +155,8 @@ export default function Billingdetails() {
                       IFSC Code
                     </label>
                     <input
+                      value={ifsc}
+                      onChange={(e) => setIfsc(e.target.value)}
                       className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] uppercase input-focus-ring transition-all"
                       placeholder="HDFC0001234"
                       type="text"
@@ -144,13 +187,13 @@ export default function Billingdetails() {
                     </div>
                     <button
                       onClick={() => setGstEnabled((prev) => !prev)}
-                      className="w-11 h-6 rounded-full p-0.5 transition-colors duration-200 flex items-center relative"
+                      className="w-11 h-6 rounded-full p-0.5 transition-colors duration-200 flex items-center relative cursor-pointer"
                       style={{ backgroundColor: gstEnabled ? "#006194" : "#bfc7d2" }}
                     >
                       <div
                         className="w-5 h-5 bg-white rounded-full transition-transform duration-200 shadow-sm"
                         style={{ transform: gstEnabled ? "translateX(20px)" : "translateX(0)" }}
-                      ></div>
+                      />
                     </button>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -159,6 +202,8 @@ export default function Billingdetails() {
                         GSTIN Number
                       </label>
                       <input
+                        value={gstin}
+                        onChange={(e) => setGstin(e.target.value)}
                         className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] uppercase input-focus-ring transition-all"
                         placeholder="22AAAAA0000A1Z5"
                         type="text"
@@ -169,6 +214,8 @@ export default function Billingdetails() {
                         PAN Number
                       </label>
                       <input
+                        value={pan}
+                        onChange={(e) => setPan(e.target.value)}
                         className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] uppercase input-focus-ring transition-all"
                         placeholder="ABCDE1234F"
                         type="text"
@@ -193,7 +240,11 @@ export default function Billingdetails() {
                     <label className="text-[12px] leading-[16px] tracking-[0.05em] font-semibold text-[#3f4850]">
                       Default Currency
                     </label>
-                    <select className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] input-focus-ring transition-all">
+                    <select
+                      value={currency}
+                      onChange={(e) => setCurrency(e.target.value)}
+                      className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] input-focus-ring transition-all outline-none"
+                    >
                       <option value="INR">INR (₹) - Indian Rupee</option>
                       <option value="USD">USD ($) - US Dollar</option>
                       <option value="EUR">EUR (€) - Euro</option>
@@ -205,12 +256,13 @@ export default function Billingdetails() {
                     </label>
                     <div className="flex">
                       <input
-                        className="flex-1 bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] input-focus-ring transition-all"
+                        value={invoicePrefix}
+                        onChange={(e) => setInvoicePrefix(e.target.value)}
+                        className="flex-1 bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] input-focus-ring transition-all outline-none"
                         type="text"
-                        defaultValue="INV-"
                       />
                       <div className="ml-3 flex items-center px-4 bg-[#eceef0] shadow-inner border border-[#bfc7d2]/50 rounded-lg text-[#3f4850] text-[12px] tracking-[0.05em] font-semibold">
-                        Sample: INV-1001
+                        Sample: {invoicePrefix}1001
                       </div>
                     </div>
                   </div>
@@ -220,23 +272,25 @@ export default function Billingdetails() {
                     Default Terms &amp; Conditions
                   </label>
                   <textarea
+                    value={terms}
+                    onChange={(e) => setTerms(e.target.value)}
                     className="w-full bg-[#f2f4f6] border border-[#bfc7d2] rounded-lg p-3 text-[14px] leading-[20px] input-focus-ring transition-all resize-none"
                     rows="4"
-                    defaultValue={
-                      "1. Payments are due within 15 days.\n2. Please quote invoice number on all correspondence.\n3. Goods once sold will not be taken back."
-                    }
                   />
                 </div>
               </section>
 
               {/* Form Actions */}
               <div className="flex items-center justify-end gap-4 pt-6">
-                <button className="px-6 py-2.5 rounded-lg text-[12px] tracking-[0.05em] font-semibold text-[#3f4850] border border-[#bfc7d2] hover:bg-[#e6e8ea] transition-all active:scale-95">
+                <button
+                  onClick={handleDiscard}
+                  className="px-6 py-2.5 rounded-lg text-[12px] tracking-[0.05em] font-semibold text-[#3f4850] border border-[#bfc7d2] hover:bg-[#e6e8ea] transition-all active:scale-95 cursor-pointer"
+                >
                   Discard Changes
                 </button>
                 <button
                   onClick={handleSave}
-                  className="px-8 py-2.5 bg-[#006194] text-white rounded-lg text-[12px] tracking-[0.05em] font-semibold shadow-lg shadow-[#006194]/20 hover:opacity-90 transition-all active:scale-95"
+                  className="px-8 py-2.5 bg-[#006194] text-white rounded-lg text-[12px] tracking-[0.05em] font-semibold shadow-lg shadow-[#006194]/20 hover:bg-[#007bb9] transition-all active:scale-95 cursor-pointer"
                 >
                   Save Financial Settings
                 </button>
@@ -244,7 +298,7 @@ export default function Billingdetails() {
             </div>
           </div>
 
-          {/* Bento Preview Section (Educational / Guidance) */}
+          {/* Guidance Section */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-8">
             <div className="col-span-1 md:col-span-2 bg-[#007bb9]/10 border border-[#007bb9]/20 p-6 rounded-2xl flex flex-col justify-between">
               <div>
@@ -259,13 +313,13 @@ export default function Billingdetails() {
                   PCI-DSS guidelines.
                 </p>
               </div>
-              <a
-                className="mt-6 text-[#006194] text-[12px] tracking-[0.05em] font-semibold flex items-center gap-1 hover:underline"
-                href="#"
+              <button
+                onClick={() => alert("Security Overview: 256-bit TLS encryption, PCI-DSS Level 1 compliance certified.")}
+                className="mt-6 text-[#006194] text-[12px] tracking-[0.05em] font-semibold flex items-center gap-1 hover:underline cursor-pointer"
               >
-                Security Overview{" "}
+                Security Overview
                 <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
-              </a>
+              </button>
             </div>
             <div className="bg-[#e6e8ea] p-6 rounded-2xl">
               <span className="material-symbols-outlined text-[#5c647a] mb-4">
@@ -281,9 +335,16 @@ export default function Billingdetails() {
                 contact_support
               </span>
               <h5 className="text-[16px] leading-[24px] font-bold text-[#191c1e]">Need Help?</h5>
-              <p className="text-[12px] leading-[16px] tracking-[0.05em] text-[#005236] mt-2">
+              <p className="text-[12px] leading-[16px] tracking-[0.05em] text-[#005236] mt-2 mb-3">
                 Speak to a finance specialist for GST onboarding.
               </p>
+              <button
+                onClick={() => navigate("/help")}
+                className="text-xs font-bold text-[#006947] hover:underline flex items-center gap-1 cursor-pointer"
+              >
+                Contact Help Desk
+                <span className="material-symbols-outlined text-[14px]">arrow_forward</span>
+              </button>
             </div>
           </div>
         </div>
@@ -299,15 +360,24 @@ export default function Billingdetails() {
             </span>
           </div>
           <div className="flex gap-6">
-            <a className="text-[12px] text-[#3f4850] hover:underline" href="#">
+            <button
+              onClick={() => alert("Privacy Policy: All store records are strictly protected.")}
+              className="text-[12px] text-[#3f4850] hover:underline cursor-pointer"
+            >
               Privacy Policy
-            </a>
-            <a className="text-[12px] text-[#3f4850] hover:underline" href="#">
+            </button>
+            <button
+              onClick={() => alert("Terms of Service: Standard financial configuration terms apply.")}
+              className="text-[12px] text-[#3f4850] hover:underline cursor-pointer"
+            >
               Terms of Service
-            </a>
-            <a className="text-[12px] text-[#3f4850] hover:underline" href="#">
+            </button>
+            <button
+              onClick={() => navigate("/help")}
+              className="text-[12px] text-[#3f4850] hover:underline cursor-pointer"
+            >
               Support
-            </a>
+            </button>
           </div>
         </footer>
       </main>

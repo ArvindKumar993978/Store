@@ -27,7 +27,6 @@ const TABS = [
   { key: "recent", label: "Recent", icon: "history" },
 ];
 
-const STOREFRONT_PATH = "/"; // update if your storefront route differs
 
 export default function ShoppingCart() {
   const navigate = useNavigate();

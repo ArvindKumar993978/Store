@@ -29,7 +29,7 @@ export default function Employee() {
       `}</style>
       <div className="font-sans">
         <AppShell page={page} onNavigate={setPage}>
-          <Page />
+          <Page onNavigate={setPage} />
         </AppShell>
       </div>
     </>

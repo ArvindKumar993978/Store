@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import StatCard from "../components/StatCard.jsx";
 
 const ACTIVITY = [
@@ -20,7 +20,9 @@ const ACTIVITY = [
   },
 ];
 
-export default function Overview() {
+export default function Overview({ onNavigate }) {
+  const [allActivityOpen, setAllActivityOpen] = useState(false);
+
   return (
     <>
       {/* Header / Greeting */}
@@ -37,11 +39,17 @@ export default function Overview() {
           </p>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
-          <button className="flex-1 md:flex-none px-4 py-2 bg-white border border-[#bfc7d2] text-[#191c1e] rounded-lg text-[14px] font-medium hover:bg-[#eff4ff] transition-colors shadow-sm flex items-center justify-center gap-2">
+          <button 
+            onClick={() => onNavigate?.("salary")}
+            className="flex-1 md:flex-none px-4 py-2 bg-white border border-[#bfc7d2] text-[#191c1e] rounded-lg text-[14px] font-medium hover:bg-[#eff4ff] transition-colors shadow-sm flex items-center justify-center gap-2"
+          >
             <span className="material-symbols-outlined text-[18px] text-[#40474f]">download</span>
             Payslip
           </button>
-          <button className="flex-1 md:flex-none px-4 py-2 bg-[#006194] text-white rounded-lg text-[14px] font-medium hover:bg-[#004870] transition-colors shadow-sm active:scale-95 duration-200 flex items-center justify-center gap-2">
+          <button 
+            onClick={() => onNavigate?.("leave")}
+            className="flex-1 md:flex-none px-4 py-2 bg-[#006194] text-white rounded-lg text-[14px] font-medium hover:bg-[#004870] transition-colors shadow-sm active:scale-95 duration-200 flex items-center justify-center gap-2"
+          >
             <span className="material-symbols-outlined text-[18px]">add</span>
             New Request
           </button>
@@ -98,11 +106,17 @@ export default function Overview() {
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3 mt-6">
-              <button className="bg-white/10 hover:bg-white/20 p-3 rounded-lg flex flex-col items-center gap-2 transition-colors border border-white/10">
+              <button 
+                onClick={() => onNavigate?.("leave")}
+                className="bg-white/10 hover:bg-white/20 p-3 rounded-lg flex flex-col items-center gap-2 transition-colors border border-white/10 active:scale-95"
+              >
                 <span className="material-symbols-outlined text-[22px]">event_available</span>
                 <span className="text-[12px]">Request Leave</span>
               </button>
-              <button className="bg-white/10 hover:bg-white/20 p-3 rounded-lg flex flex-col items-center gap-2 transition-colors border border-white/10">
+              <button 
+                onClick={() => onNavigate?.("salary")}
+                className="bg-white/10 hover:bg-white/20 p-3 rounded-lg flex flex-col items-center gap-2 transition-colors border border-white/10 active:scale-95"
+              >
                 <span className="material-symbols-outlined text-[22px]">receipt_long</span>
                 <span className="text-[12px]">View Payslip</span>
               </button>
@@ -121,7 +135,10 @@ export default function Overview() {
         <div className="lg:col-span-8 bg-white rounded-xl shadow-sm border border-[#bfc7d2] overflow-hidden">
           <div className="p-5 border-b border-[#bfc7d2] bg-[#eff4ff] flex justify-between items-center">
             <h3 className="text-[16px] font-semibold text-[#191c1e]">Recent Activity</h3>
-            <button className="text-[#006194] text-[12px] font-medium hover:underline">
+            <button 
+              onClick={() => setAllActivityOpen(true)}
+              className="text-[#006194] text-[12px] font-medium hover:underline"
+            >
               View All
             </button>
           </div>
@@ -152,6 +169,65 @@ export default function Overview() {
           </div>
         </div>
       </div>
+
+      {/* Full Activity Modal */}
+      {allActivityOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="bg-white rounded-xl shadow-xl w-full max-w-lg p-6 relative max-h-[80vh] flex flex-col">
+            <div className="flex justify-between items-center pb-3 border-b border-[#bfc7d2]">
+              <h3 className="text-[18px] font-bold text-[#191c1e]">Activity History</h3>
+              <button
+                onClick={() => setAllActivityOpen(false)}
+                className="text-[#40474f] hover:text-[#006194] p-1 rounded-lg"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto space-y-4 py-4 pr-1">
+              {[
+                ...ACTIVITY,
+                {
+                  icon: "badge",
+                  iconBg: "bg-[#ffdcc0]",
+                  iconColor: "text-[#894d00]",
+                  title: "Profile Information Updated",
+                  time: "Oct 15",
+                  body: "Emergency contact details were successfully verified and updated by HR.",
+                },
+                {
+                  icon: "schedule",
+                  iconBg: "bg-[#dae2fc]",
+                  iconColor: "text-[#004870]",
+                  title: "Overtime Approved",
+                  time: "Oct 08",
+                  body: "4 hours of weekend store inventory support approved by Store Manager.",
+                },
+              ].map((act, idx) => (
+                <div key={idx} className="flex gap-3 p-3 rounded-lg border border-[#bfc7d2] bg-[#f7f9fb]">
+                  <div className={`w-9 h-9 rounded-full ${act.iconBg} ${act.iconColor} flex items-center justify-center flex-shrink-0`}>
+                    <span className="material-symbols-outlined text-[18px]">{act.icon}</span>
+                  </div>
+                  <div>
+                    <div className="flex justify-between items-center">
+                      <span className="font-semibold text-[13px] text-[#191c1e]">{act.title}</span>
+                      <span className="text-[11px] text-[#707881]">{act.time}</span>
+                    </div>
+                    <p className="text-[12px] text-[#40474f] mt-1">{act.body}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="pt-3 border-t border-[#bfc7d2] flex justify-end">
+              <button
+                onClick={() => setAllActivityOpen(false)}
+                className="px-4 py-2 bg-[#006194] text-white rounded-lg text-[13px] font-semibold hover:bg-[#004870]"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

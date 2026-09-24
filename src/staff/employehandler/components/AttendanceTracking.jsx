@@ -8,6 +8,25 @@ import AttendanceTable from "./AttendanceTable.jsx";
 const AttendanceTracking = ({ onNavigate }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
+  const handleExportAttendance = () => {
+    const headers = ["Employee", "ID", "Department", "Clock In", "Clock Out", "Total Hours", "Status"];
+    const rows = [
+      ["John Doe", "EMP-001", "Engineering", "08:55 AM", "05:30 PM", "8h 35m", "PRESENT"],
+      ["Jane Smith", "EMP-042", "Sales", "09:15 AM", "06:00 PM", "8h 45m", "LATE"],
+      ["Robert Johnson", "EMP-088", "HR", "--:--", "--:--", "0h 0m", "ON LEAVE"],
+    ];
+    const csvContent =
+      "data:text/csv;charset=utf-8," +
+      [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `daily_attendance_record.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   return (
     <div className="flex min-h-screen w-full bg-[#f7f9fb] text-[#191c1e]">
       <Sidebar
@@ -18,6 +37,7 @@ const AttendanceTracking = ({ onNavigate }) => {
           label: "Export Data",
           icon: "download",
           className: "bg-[#006194] hover:bg-[#076396]",
+          onClick: handleExportAttendance,
         }}
         secondaryLinks={[
           { icon: "settings", label: "Settings" },
@@ -43,7 +63,10 @@ const AttendanceTracking = ({ onNavigate }) => {
                 Monitor staff presence and manage daily records.
               </p>
             </div>
-            <button className="bg-[#006194] text-white text-[12px] font-semibold tracking-[0.05em] py-[10px] px-[20px] rounded-[8px] active:scale-95 transition-transform shadow-sm hover:bg-[#076396] flex items-center gap-2">
+            <button 
+              onClick={handleExportAttendance}
+              className="bg-[#006194] text-white text-[12px] font-semibold tracking-[0.05em] py-[10px] px-[20px] rounded-[8px] active:scale-95 transition-transform shadow-sm hover:bg-[#076396] flex items-center gap-2"
+            >
               <span className="material-symbols-outlined text-[18px]">download</span>
               Export Attendance
             </button>
