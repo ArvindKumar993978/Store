@@ -1,107 +1,70 @@
 import React, { useRef, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../component/CartContext";
+import { useStore } from "../context/StoreContext";
 
-const CATEGORIES = ["All Items", "Dairy & Eggs", "Snacks", "Beverages", "Pantry"];
-
-const PRODUCTS = [
-  {
-    id: 101,
-    name: "Whole Milk 1L",
-    category: "Dairy & Eggs",
-    price: 65.0,
-    badge: { label: "Organic", bg: "bg-[#00855b]", fg: "text-[#f5fff6]" },
-    icon: "add_shopping_cart",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuC28OYNrjySngEAz5-eoh4RsMV5p4ujMccEPUzjJ4s3iRPrQhcF3SozB1DX8rlLxaKKji-KzJMs_xaZr0gzvWosEeI_yIMO6nLor0Prv8wccWvYr4rAC8r7I95OFQvZv5zhhfvhdwjpRUuuk8SHyJYBZRyTC6fiD2stZCirmiELJ7XQb02GrONXCyMmIk9Ui7EsL_eFetBsbVga2ETsJAlBVnJNENU_mufawkJ7clDRHLgBoifTd1-9TQ",
-  },
-  {
-    id: 102,
-    name: "Roasted Almonds",
-    category: "Snacks",
-    price: 240.0,
-    badge: { label: "Low Stock", bg: "bg-[#ffdad6]", fg: "text-[#93000a]" },
-    icon: "shopping_basket",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCoWAdBQq7nHmJyLzAkkyN4Dre0p2yIN4kobqfoBGO2TibAGeCTnqNHt-ZjEvDjIz44Us1qGWWsQO3KNxCFtBu2ufmbYnukGXEYQgYiuj1neviv218Zb083cIZsy5ReAD5ibykPNmXZLktMrgq6_4ASOa0-Zytlu6Pe4h9bjxfS6qMuMIsF6pGHfRuoPmMixe_iqoU0yldFrKstbKepzE92oWUZvgntPoRxPsI4NWT2lIrhN4vW6jMtNA",
-  },
-  {
-    id: 103,
-    name: "Farm Fresh Eggs (6)",
-    category: "Dairy & Eggs",
-    price: 48.0,
-    badge: null,
-    icon: "add",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA6nmq77z6-sZHOwAMgvYyZFwdiZOhy3nvH2SdPMKiZDpjpT9nBPUmbsxhLm6UPJRByrQ3Q0CiKaBI0uKd57k1dmlGQZde1tsrSgM1qt5evlf526cOtV1CbYwNgqRtFY9k9GdzlVGTyMKjp7h1X7CsgWrasNEZFJH_3VcbNt8T4V3I6C0UHoLtJAfVyLYPNYHR2gGhcs-aSgR_9yqpt6ue0R7a_Jc3nfc9R77y3PFg7a--sU8bRNImA4g",
-  },
-  {
-    id: 104,
-    name: "Cold Brew Coffee",
-    category: "Beverages",
-    price: 120.0,
-    badge: null,
-    icon: "local_cafe",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAnKuyBoNdC70ZYlQ9OmCBc_-lh7hLcEjpU-ZlIS7Y1mFXyfLNnFSuZ7Ixhr0VkOa3lL6oXuQiCJbWAIoVf0EaQIJ-MW7uqLPD0CPCNll-EI5mM5BQ0el3AuaMTBO1uqMKcu7-wRjm2UephSd-fJZFdS0OScucmAbwj1me6wzZ5ACtRtRolU7GqHep8xa0BBXFPDWVvBR4HfaUrXJcBgPtQX_ulp1BnE7Q6v7dQRcPxwt1B0sLxUaGqaA",
-  },
-  {
-    id: 105,
-    name: "Multi-Grain Bread",
-    category: "Pantry",
-    price: 55.0,
-    badge: { label: "New", bg: "bg-[#dae2fd]", fg: "text-[#5c647a]" },
-    icon: "add",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA9CPiyExUuTgkougKL9AjlH27t9KwwxbHXcsAWc12_78Quqyqy6ozcFq87gOBxxNPSbDhMlqdn-eJv9P_w5qIBCeG9iVppphpwMVUXtjuTjywPUOPtOjFEsxsmvdMcTQ02f_b1tSLOi3CUPHcnuR6WCw1eJ2F87phwg1uTJCTqsvsLhfzvPLddTZUcQtJqRBpFx0frqLPbkJorqw0RgdlJ0zgCc5i_MS5CHS-aju_JHExQeb4vQPuW0A",
-  },
-  {
-    id: 106,
-    name: "Baked Veggie Chips",
-    category: "Snacks",
-    price: 85.0,
-    badge: null,
-    icon: "add",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAI6ZykRw949TmAQxA0XXKhPeEJB_2r2P9Y8M2Krxkp3Ogip7HVXDLwg3olyhDzNNmi3ACY6Af3EWaiJZ3XJuMN_bjdTw9AODFfZ6witznquKNlbvi2Hvx_eU_3PHKnRy7MTH5oTeldNjahJ_VCphtA2qfaSi21D2S5BUADuoQKnK3_sVSBzuvoBAYj7QA5OnzCXorFtt7TRNlgPOYfd1tiUFxSsH6tOn72DVvMxmJhuSeS3i-lDvU-Bw",
-  },
-];
-
-const inr = (n) => `₹${n.toFixed(2)}`;
+const inr = (n) => `₹${Number(n || 0).toFixed(2)}`;
 
 function ProductCard({ product, onAdd, justAdded }) {
+  const isOutOfStock = product.stock === 0;
+  const isLowStock = product.stock > 0 && product.stock <= 5;
+
   return (
-    <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group border border-[#bfc7d2]/30">
+    <div className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow flex flex-col group border border-[#bfc7d2]/30 relative">
       <div className="aspect-square relative overflow-hidden bg-[#eceef0]">
         <img
           src={product.image}
           alt={product.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         {product.badge && (
           <span
-            className={`absolute top-2 left-2 ${product.badge.bg} ${product.badge.fg} text-[12px] font-semibold px-2 py-1 rounded-full shadow-sm`}
+            className="absolute top-2 left-2 text-white text-[11px] font-semibold px-2 py-0.5 rounded-full shadow-sm z-10"
+            style={{ backgroundColor: product.badgeColor || "#006194" }}
           >
-            {product.badge.label}
+            {product.badge}
           </span>
+        )}
+        {isOutOfStock && (
+          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[1px] flex items-center justify-center p-2 z-10">
+            <span className="bg-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase shadow">
+              Out of Stock
+            </span>
+          </div>
         )}
       </div>
       <div className="p-3 flex flex-col flex-grow">
+        <div className="flex items-center justify-between mb-1">
+          <p className="text-[12px] font-semibold tracking-wide text-[#707881] uppercase">{product.category || "Grocery"}</p>
+          {isLowStock && (
+            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+              Only {product.stock} left
+            </span>
+          )}
+        </div>
         <h3 className="text-base font-semibold text-[#191c1e] line-clamp-1">{product.name}</h3>
-        <p className="text-[12px] font-semibold tracking-wide text-[#3f4850]">{product.category}</p>
-        <div className="mt-auto pt-3 flex items-center justify-between">
-          <span className="text-[#006194] text-base font-bold tabular-nums">{inr(product.price)}</span>
+        <p className="text-xs text-[#5c647a] line-clamp-1 mb-2">{product.desc}</p>
+        <div className="mt-auto pt-2 flex items-center justify-between">
+          <span className="text-[#006194] text-base font-bold tabular-nums">{inr(product.numPrice)}</span>
+          {product.originalPrice && (
+            <span className="text-xs text-[#707881] line-through">{product.originalPrice}</span>
+          )}
         </div>
         <button
           onClick={() => onAdd(product)}
-          className={`mt-3 w-full py-2 rounded-lg text-[12px] font-semibold active:scale-95 transition-all flex items-center justify-center gap-2 text-white shadow-sm ${
-            justAdded ? "bg-[#006947]" : "bg-[#006194] hover:bg-[#007bb9]"
+          disabled={isOutOfStock}
+          className={`mt-3 w-full py-2 rounded-lg text-[12px] font-semibold active:scale-95 transition-all flex items-center justify-center gap-2 shadow-sm ${
+            isOutOfStock
+              ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+              : justAdded
+              ? "bg-[#006947] text-white"
+              : "bg-[#006194] hover:bg-[#007bb9] text-white"
           }`}
         >
           <span className="material-symbols-outlined text-[18px]">
-            {justAdded ? "check" : product.icon}
+            {isOutOfStock ? "block" : justAdded ? "check" : "add_shopping_cart"}
           </span>
-          {justAdded ? "Added to Basket" : "Add to Cart"}
+          {isOutOfStock ? "Out of Stock" : justAdded ? "Added to Basket" : "Add to Cart"}
         </button>
       </div>
     </div>
@@ -111,6 +74,7 @@ function ProductCard({ product, onAdd, justAdded }) {
 export default function ShopNowPage() {
   const navigate = useNavigate();
   const { addToCart, cartCount } = useCart();
+  const { products } = useStore();
   const [activeCategory, setActiveCategory] = useState("All Items");
   const [justAddedId, setJustAddedId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -119,21 +83,40 @@ export default function ShopNowPage() {
   const scrollRef = useRef(null);
   const dragState = useRef({ isDown: false, startX: 0, scrollLeft: 0 });
 
-  const visibleProducts = useMemo(() => {
-    return PRODUCTS.filter((p) => {
-      const matchCat = activeCategory === "All Items" || p.category === activeCategory;
-      const matchSearch = !searchQuery || p.name.toLowerCase().includes(searchQuery.toLowerCase());
-      return matchCat && matchSearch;
+  const categories = useMemo(() => {
+    const set = new Set();
+    products.forEach((p) => {
+      if (p.category) set.add(p.category);
     });
-  }, [activeCategory, searchQuery]);
+    return ["All Items", ...Array.from(set)];
+  }, [products]);
+
+  const visibleProducts = useMemo(() => {
+    return products
+      .map((p) => ({
+        ...p,
+        numPrice: typeof p.price === "number" ? p.price : parseFloat(String(p.price).replace(/[^0-9.]/g, "") || 0),
+      }))
+      .filter((p) => {
+        const matchCat = activeCategory === "All Items" || p.category === activeCategory;
+        const matchSearch =
+          !searchQuery ||
+          p.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (p.category && p.category.toLowerCase().includes(searchQuery.toLowerCase()));
+        return matchCat && matchSearch;
+      });
+  }, [products, activeCategory, searchQuery]);
 
   const handleAdd = (product) => {
+    if (product.stock === 0) return;
     addToCart({
       id: product.id,
       name: product.name,
-      price: product.price,
+      price: product.numPrice,
       image: product.image,
       desc: product.category,
+      stock: product.stock,
+      sku: product.sku,
     });
     setJustAddedId(product.id);
     setTimeout(() => setJustAddedId((current) => (current === product.id ? null : current)), 2000);
@@ -225,7 +208,7 @@ export default function ShopNowPage() {
           onMouseUp={onMouseLeaveOrUp}
           onMouseMove={onMouseMove}
         >
-          {CATEGORIES.map((cat) => (
+          {categories.map((cat) => (
             <button
               key={cat}
               onClick={() => setActiveCategory(cat)}

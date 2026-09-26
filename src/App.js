@@ -20,6 +20,7 @@ import Product from "./admin/Product.jsx";
 import ReportProgress from "./component/ReportProgress.jsx";
 import ShoppingCart from "./customer/ShoppingCart.jsx";
 import { CartProvider } from "./component/CartContext.jsx";
+import { StoreProvider } from "./context/StoreContext.jsx";
 import CheckoutPage from "./customer/CheckoutPage.jsx";
 import OrderHistoryPage  from "./customer/OrderHistoryPage.jsx";
 import CustomerSupportPage from "./customer/CustomerSupportPage.jsx";
@@ -30,8 +31,9 @@ import EmployeeHandler from "./staff/employehandler/EmployeHandler.jsx";
 
 function App() {
   return (
-    <CartProvider>
-      <Routes>
+    <StoreProvider>
+      <CartProvider>
+        <Routes>
       <Route path="/" element={<Entrance />} />
       <Route path="/admin" element={<AdminDashboard />} />
       <Route path="/product" element={<Product />} />
@@ -61,7 +63,7 @@ function App() {
       <Route path="/staff-handler" element={<EmployeeHandler />} />
     </Routes> 
     </CartProvider>
-    
+    </StoreProvider>
   );
 }
 

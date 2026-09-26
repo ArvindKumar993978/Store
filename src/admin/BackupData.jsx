@@ -1,12 +1,14 @@
 import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
+import { useStore } from "../context/StoreContext";
 
 export default function BackupData() {
   const navigate = useNavigate();
+  const { exportBackupJSON, importBackupJSON, products, sales, orders } = useStore();
   const [backupState, setBackupState] = useState("idle"); // idle | syncing | complete
   const [dragActive, setDragActive] = useState(false);
-  const [fileInfo, setFileInfo] = useState(null); // { name, size }
+  const [fileInfo, setFileInfo] = useState(null); // { name, size, rawFile }
   const [exportFormat, setExportFormat] = useState("xlsx");
   const [showRestoreModal, setShowRestoreModal] = useState(false);
   const [restoring, setRestoring] = useState(false);
@@ -23,12 +25,13 @@ export default function BackupData() {
     if (backupState !== "idle") return;
     setBackupState("syncing");
     setTimeout(() => {
+      exportBackupJSON();
       setBackupState("complete");
-      showToast("Cloud backup synchronized successfully!");
+      showToast("Store backup exported and synchronized successfully!");
       setTimeout(() => {
         setBackupState("idle");
       }, 2000);
-    }, 2500);
+    }, 800);
   };
 
   const handleDropzoneClick = () => {
@@ -48,6 +51,7 @@ export default function BackupData() {
       setFileInfo({
         name: file.name,
         size: (file.size / 1024).toFixed(1) + " KB",
+        rawFile: file,
       });
       showToast(`Selected backup file: ${file.name}`);
     }
@@ -59,6 +63,7 @@ export default function BackupData() {
       setFileInfo({
         name: file.name,
         size: (file.size / 1024).toFixed(1) + " KB",
+        rawFile: file,
       });
       showToast(`Selected backup file: ${file.name}`);
     }
@@ -78,28 +83,38 @@ export default function BackupData() {
     if (exportFormat === "csv") {
       mimeType = "text/csv;charset=utf-8;";
       fileExt = "csv";
-      content = `ID,RecordName,Category,Date,Status,Amount\n1,${datasetName} Item 101,Standard,${dateStr},Active,150.00\n2,${datasetName} Item 102,Standard,${dateStr},Active,275.50\n3,${datasetName} Item 103,Premium,${dateStr},Active,899.00\n`;
+      if (datasetName === "Product Catalog") {
+        const headers = ["ID", "Name", "SKU", "Category", "Price", "Stock", "Threshold"];
+        const rows = products.map((p) => [p.id, `"${p.name}"`, `"${p.sku || ""}"`, `"${p.category || ""}"`, p.price, p.stock, p.lowStockThreshold || 10]);
+        content = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      } else if (datasetName === "Sales Records") {
+        const headers = ["Invoice ID", "Date", "Customer", "Subtotal", "Discount", "Grand Total", "Status"];
+        const rows = sales.map((s) => [s.id, `"${s.date}"`, `"${s.customer || ""}"`, s.subtotal || 0, s.discount || 0, s.grandTotal || 0, `"${s.status || "Paid"}"`]);
+        content = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      } else {
+        const headers = ["Order ID", "Date", "Customer", "Total", "Status", "Payment Method"];
+        const rows = orders.map((o) => [o.id, `"${o.date}"`, `"${o.customer || ""}"`, o.total || 0, `"${o.status || ""}"`, `"${o.paymentMethod || ""}"`]);
+        content = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
+      }
     } else if (exportFormat === "json") {
       mimeType = "application/json";
       fileExt = "json";
+      const payload = datasetName === "Product Catalog" ? products : datasetName === "Sales Records" ? sales : orders;
       content = JSON.stringify(
         {
           dataset: datasetName,
           generatedDate: new Date().toISOString(),
-          recordCount: datasetName === "Product Catalog" ? 1240 : datasetName === "Sales Records" ? 8500 : 450,
-          entries: [
-            { id: 101, name: `${datasetName} Sample A`, date: dateStr, status: "Active" },
-            { id: 102, name: `${datasetName} Sample B`, date: dateStr, status: "Active" },
-          ],
+          recordCount: payload.length,
+          data: payload,
         },
         null,
         2
       );
     } else {
-      // Excel compatible CSV/XML text format
-      mimeType = "application/vnd.ms-excel";
-      fileExt = "xlsx";
-      content = `ID\tRecordName\tCategory\tDate\tStatus\n1\t${datasetName} Item 101\tStandard\t${dateStr}\tActive\n2\t${datasetName} Item 102\tStandard\t${dateStr}\tActive\n`;
+      fileExt = "tsv";
+      mimeType = "text/tab-separated-values";
+      const payload = datasetName === "Product Catalog" ? products : datasetName === "Sales Records" ? sales : orders;
+      content = JSON.stringify(payload, null, 2);
     }
 
     const blob = new Blob([content], { type: mimeType });
@@ -116,26 +131,43 @@ export default function BackupData() {
   };
 
   const handleConfirmRestore = () => {
-    setRestoring(true);
-    setRestoreProgress(10);
+    if (!fileInfo?.rawFile) {
+      showToast("No file selected to restore!");
+      setShowRestoreModal(false);
+      return;
+    }
 
-    const stepInterval = setInterval(() => {
-      setRestoreProgress((prev) => {
-        if (prev >= 90) {
-          clearInterval(stepInterval);
+    setRestoring(true);
+    setRestoreProgress(25);
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const parsed = JSON.parse(e.target.result);
+        setRestoreProgress(65);
+        setTimeout(() => {
+          const success = importBackupJSON(parsed);
+          setRestoreProgress(100);
           setTimeout(() => {
             setRestoring(false);
             setShowRestoreModal(false);
             const restoredFileName = fileInfo?.name || "backup";
             setFileInfo(null);
             if (fileInputRef.current) fileInputRef.current.value = "";
-            showToast(`Database successfully restored from ${restoredFileName}!`);
-          }, 600);
-          return 100;
-        }
-        return prev + 25;
-      });
-    }, 450);
+            if (success) {
+              showToast(`Database successfully restored from ${restoredFileName}!`);
+            } else {
+              showToast("Failed to restore: invalid backup structure.");
+            }
+          }, 500);
+        }, 500);
+      } catch (err) {
+        setRestoring(false);
+        setShowRestoreModal(false);
+        showToast("Error parsing JSON backup file!");
+      }
+    };
+    reader.readAsText(fileInfo.rawFile);
   };
 
   return (

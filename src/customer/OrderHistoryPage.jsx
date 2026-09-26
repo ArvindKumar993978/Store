@@ -1,13 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../component/CartContext";
+import { useStore } from "../context/StoreContext";
 import StorefrontNavbar from "../component/StorefrontNavbar.jsx";
 
 /*
   OrderHistoryPage
   ----------------
-  Reads real orders from CartContext (populated by CheckoutPage's
-  placeOrder call) with full filter, CSV export, and view details modal.
+  Unified order manager connecting CartContext & StoreContext
+  with live search, status filtering, order details inspection, and CSV export.
 */
 
 const PAGE_SIZE = 5;
@@ -20,7 +21,7 @@ const STATUS_STYLES = {
 };
 
 const inr = (n) =>
-  `\u20B9${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  `₹${Number(n || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const formatDate = (isoString) => {
   if (!isoString) return "N/A";
@@ -36,11 +37,29 @@ const formatDate = (isoString) => {
 
 export default function OrderHistoryPage() {
   const navigate = useNavigate();
-  const { orders, orderStats } = useCart();
+  const { orders: cartOrders } = useCart();
+  const { orders: storeOrders } = useStore();
   const [page, setPage] = useState(0);
   const [statusFilter, setStatusFilter] = useState("ALL");
   const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState(null);
+
+  // Unify and sort orders
+  const orders = useMemo(() => {
+    const map = new Map();
+    (storeOrders || []).forEach((o) => map.set(o.id, o));
+    (cartOrders || []).forEach((o) => map.set(o.id, { ...map.get(o.id), ...o }));
+    return Array.from(map.values()).sort(
+      (a, b) => new Date(b.date || 0).getTime() - new Date(a.date || 0).getTime()
+    );
+  }, [storeOrders, cartOrders]);
+
+  const orderStats = useMemo(() => {
+    const totalOrders = orders.length;
+    const inTransit = orders.filter((o) => o.status === "In Transit" || o.status === "Pending").length;
+    const totalSpent = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    return { totalOrders, inTransit, totalSpent };
+  }, [orders]);
 
   // Filter orders
   const filteredOrders = useMemo(() => {

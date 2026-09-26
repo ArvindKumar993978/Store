@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import Topnav from "../component/Topnav";
+import { useStore } from "../context/StoreContext";
 
 /*
   Transaction History Page
@@ -113,6 +114,7 @@ const STATUS_CLASSES = {
 
 export default function Sales() {
   const navigate = useNavigate();
+  const { sales, orders } = useStore();
   const [activeTab, setActiveTab] = useState("sales"); // "sales" | "purchases"
   const [filterStatus, setFilterStatus] = useState("All Statuses");
   const [filterEntity, setFilterEntity] = useState("");
@@ -120,9 +122,45 @@ export default function Sales() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  const liveSalesData = useMemo(() => {
+    const posList = (sales || []).map((s) => ({
+      inv: s.id || `INV-${Math.floor(Math.random() * 90000)}`,
+      date: s.date || "Today",
+      entity: s.customer || "Walk-in Customer",
+      amount: `₹${Number(s.grandTotal || s.total || 0).toFixed(2)}`,
+      rawAmount: Number(s.grandTotal || s.total || 0),
+      status: s.status || "Paid",
+      channel: "POS Counter",
+      items: (s.items || []).map((it) => ({
+        name: it.name,
+        qty: it.qty,
+        price: it.price,
+      })),
+    }));
+
+    const onlineList = (orders || []).map((o) => ({
+      inv: o.id || `ORD-${Math.floor(Math.random() * 90000)}`,
+      date: o.date || "Today",
+      entity: o.customer || (o.shippingAddress ? o.shippingAddress.split(",")[0] : "Online Customer"),
+      amount: `₹${Number(o.total || 0).toFixed(2)}`,
+      rawAmount: Number(o.total || 0),
+      status: o.status === "Delivered" ? "Paid" : o.status || "Paid",
+      channel: "Online Storefront",
+      items: (o.items || []).map((it) => ({
+        name: it.name,
+        qty: it.qty,
+        price: it.price,
+      })),
+    }));
+
+    const combined = [...posList, ...onlineList];
+    if (combined.length === 0) return SALES_DATA;
+    return [...combined, ...SALES_DATA];
+  }, [sales, orders]);
+
   const isSales = activeTab === "sales";
   const entityLabel = isSales ? "Customer" : "Supplier";
-  const baseData = isSales ? SALES_DATA : PURCHASE_DATA;
+  const baseData = isSales ? liveSalesData : PURCHASE_DATA;
 
   // Filtered rows
   const filteredRows = useMemo(() => {

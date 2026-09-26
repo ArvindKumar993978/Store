@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useCart, GST_RATE } from "../component/CartContext";
+import { useStore } from "../context/StoreContext";
 import StorefrontNavbar from "../component/StorefrontNavbar.jsx";
 
 const INITIAL_ADDRESSES = [
@@ -49,6 +50,7 @@ const inr = (n) =>
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, updateQty, placeOrder: placeOrderInHistory } = useCart();
+  const { recordCustomerOrder, applyPromoCode } = useStore();
   const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
   const [addressId, setAddressId] = useState("home");
   const [paymentId, setPaymentId] = useState("upi");
@@ -68,12 +70,14 @@ export default function CheckoutPage() {
 
   const handleApplyCoupon = (e) => {
     e?.preventDefault();
-    if (couponCode.trim().toUpperCase() === "KRISHNA100") {
-      setCouponDiscount(100);
-      setCouponStatus({ success: true, msg: "Coupon KRISHNA100 applied! Saved ₹100." });
+    if (!couponCode.trim()) return;
+    const res = applyPromoCode(couponCode.trim(), subtotal);
+    if (res.valid) {
+      setCouponDiscount(res.discount);
+      setCouponStatus({ success: true, msg: `Coupon ${res.code} applied! Saved ₹${res.discount}.` });
     } else {
       setCouponDiscount(0);
-      setCouponStatus({ success: false, msg: "Invalid coupon. Use KRISHNA100 for ₹100 off." });
+      setCouponStatus({ success: false, msg: res.message });
     }
   };
 
@@ -97,13 +101,33 @@ export default function CheckoutPage() {
   const handlePlaceOrder = () => {
     if (items.length === 0) return;
     setStatus("processing");
+    const activeAddress = addresses.find((a) => a.id === addressId) || addresses[0];
+    const orderDetails = {
+      items: items.map((it) => ({
+        id: it.id,
+        name: it.name,
+        price: it.price,
+        qty: it.qty,
+        image: it.image,
+      })),
+      total: grandTotal,
+      subtotal: subtotal,
+      discount: couponDiscount,
+      gst: gst,
+      paymentMethod: PAYMENT_METHODS.find((p) => p.id === paymentId)?.title || paymentId,
+      shippingAddress: `${activeAddress.name}, ${activeAddress.lines.join(", ")}, Phone: ${activeAddress.phone || "N/A"}`,
+    };
+
     setTimeout(() => {
+      // 1. Record customer order in StoreContext (deducts stock and records order)
+      recordCustomerOrder(orderDetails);
+      // 2. Clear cart and navigate
       placeOrderInHistory(paymentId);
       setStatus("success");
       setTimeout(() => {
         navigate("/orders");
       }, 1500);
-    }, 2000);
+    }, 1500);
   };
 
   return (

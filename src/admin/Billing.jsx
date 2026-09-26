@@ -2,13 +2,16 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import PosTopNav from "../component/PosTopNav";
+import { useStore } from "../context/StoreContext";
 
 /*
   POS Billing Terminal
   --------------------
-  Fully functional Point of Sale system:
+  Fully reactive Point of Sale connected to centralized StoreContext:
+  - Real-time stock depletion upon invoice generation
   - Barcode search & item addition
   - Dynamic live recalculation of quantities, discounts, CGST, SGST, Grand Total
+  - Promo code validation engine (SAVE50, WELCOME10, FRESH20, FLAT100)
   - Payment method toggle (UPI / Cash)
   - New Customer creation modal
   - View sales history navigation
@@ -17,27 +20,32 @@ import PosTopNav from "../component/PosTopNav";
 
 const GST_RATE = 0.09; // 9% CGST + 9% SGST = 18% total
 
-const INVENTORY_CATALOG = [
-  { id: 1, name: "Maggi Noodles 70g", hsn: "19023010", stock: 142, price: 14.0 },
-  { id: 2, name: "Tata Salt 1kg", hsn: "25010010", stock: 85, price: 25.0 },
-  { id: 3, name: "Whole Milk - 1L", hsn: "04012000", stock: 12, price: 45.0 },
-  { id: 4, name: "Honey Loops Cereal", hsn: "19041090", stock: 148, price: 185.0 },
-  { id: 5, name: "Premium Basmati Rice 5kg", hsn: "10063020", stock: 52, price: 450.0 },
-  { id: 6, name: "Fortune Sunflower Oil 1L", hsn: "15121910", stock: 35, price: 195.0 },
-  { id: 7, name: "Amul Butter 500g", hsn: "04051000", stock: 20, price: 275.0 },
-];
-
-const INITIAL_CART = [
-  { id: 1, name: "Maggi Noodles 70g", hsn: "19023010", stock: 142, price: 14.0, qty: 2 },
-  { id: 2, name: "Tata Salt 1kg", hsn: "25010010", stock: 85, price: 25.0, qty: 1 },
-];
-
 export default function Billing() {
   const navigate = useNavigate();
+  const { products, recordPosSale, applyPromoCode } = useStore();
+
+  // Normalized catalog from reactive StoreContext
+  const catalog = useMemo(() => {
+    return products.map((p) => {
+      const pVal = typeof p.price === "number" ? p.price : parseFloat(String(p.price).replace(/[^0-9.]/g, "") || 0);
+      return {
+        id: p.id,
+        name: p.name,
+        hsn: p.sku || `HSN-${p.id}`,
+        sku: p.sku || `SKU-${p.id}`,
+        stock: Number(p.stock ?? 0),
+        price: pVal,
+        category: p.category,
+        image: p.image,
+      };
+    });
+  }, [products]);
 
   // Cart & checkout state
-  const [cart, setCart] = useState(INITIAL_CART);
+  const [cart, setCart] = useState([]);
   const [discount, setDiscount] = useState(0);
+  const [promoCodeInput, setPromoCodeInput] = useState("");
+  const [promoStatus, setPromoStatus] = useState(null); // { success: boolean, msg: string }
   const [searchQuery, setSearchQuery] = useState("");
   const [customer, setCustomer] = useState({ name: "Walk-in Customer", phone: "", points: 0 });
   const [paymentMode, setPaymentMode] = useState("UPI"); // "UPI" | "CASH"
@@ -46,16 +54,59 @@ export default function Billing() {
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newCustomerForm, setNewCustomerForm] = useState({ name: "", phone: "" });
   const [generatedInvoice, setGeneratedInvoice] = useState(null);
+  const [toastMsg, setToastMsg] = useState("");
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(""), 3000);
+  };
 
   const updateQty = (id, delta) => {
     setCart((prev) =>
       prev
-        .map((item) => (item.id === id ? { ...item, qty: item.qty + delta } : item))
+        .map((item) => {
+          if (item.id === id) {
+            const product = catalog.find((p) => p.id === id);
+            const currentStock = product ? product.stock : item.stock;
+            const newQty = item.qty + delta;
+            if (newQty > currentStock) {
+              showToast(`Only ${currentStock} units available in stock!`);
+              return item;
+            }
+            return { ...item, qty: newQty };
+          }
+          return item;
+        })
         .filter((item) => item.qty > 0)
     );
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    setDiscount(0);
+    setPromoCodeInput("");
+    setPromoStatus(null);
+  };
+
+  // Add item from catalog
+  const addItemToCart = (item) => {
+    if (item.stock <= 0) {
+      showToast(`${item.name} is currently Out of Stock!`);
+      return;
+    }
+    setCart((prev) => {
+      const existing = prev.find((it) => it.id === item.id);
+      if (existing) {
+        if (existing.qty >= item.stock) {
+          showToast(`Cannot add more than available stock (${item.stock})!`);
+          return prev;
+        }
+        return prev.map((it) => (it.id === item.id ? { ...it, qty: it.qty + 1 } : it));
+      }
+      return [...prev, { ...item, qty: 1 }];
+    });
+    showToast(`Added ${item.name} to bill`);
+  };
 
   // Search and add item to cart
   const handleAddItem = (e) => {
@@ -63,23 +114,34 @@ export default function Billing() {
     if (!searchQuery.trim()) return;
 
     const term = searchQuery.trim().toLowerCase();
-    const found = INVENTORY_CATALOG.find(
-      (it) => it.name.toLowerCase().includes(term) || it.hsn.includes(term)
+    const found = catalog.find(
+      (it) =>
+        it.name.toLowerCase().includes(term) ||
+        (it.hsn && it.hsn.toLowerCase().includes(term)) ||
+        (it.sku && it.sku.toLowerCase().includes(term))
     );
 
     if (found) {
-      setCart((prev) => {
-        const existing = prev.find((it) => it.id === found.id);
-        if (existing) {
-          return prev.map((it) => (it.id === found.id ? { ...it, qty: it.qty + 1 } : it));
-        }
-        return [...prev, { ...found, qty: 1 }];
-      });
+      addItemToCart(found);
       setSearchQuery("");
     } else {
-      alert(`No product found for "${searchQuery}". Try "Milk", "Rice", "Amul", "Oil", or "Salt".`);
+      showToast(`No item found matching "${searchQuery}".`);
     }
   };
+
+  // Filtered suggestions when searching
+  const searchSuggestions = useMemo(() => {
+    if (!searchQuery.trim()) return [];
+    const term = searchQuery.trim().toLowerCase();
+    return catalog
+      .filter(
+        (it) =>
+          it.name.toLowerCase().includes(term) ||
+          (it.sku && it.sku.toLowerCase().includes(term)) ||
+          (it.category && it.category.toLowerCase().includes(term))
+      )
+      .slice(0, 5);
+  }, [catalog, searchQuery]);
 
   const totals = useMemo(() => {
     const subtotal = cart.reduce((sum, item) => sum + item.price * item.qty, 0);
@@ -89,6 +151,18 @@ export default function Billing() {
     const grandTotal = discountedSubtotal + cgst + sgst;
     return { subtotal, cgst, sgst, grandTotal };
   }, [cart, discount]);
+
+  const handleApplyCoupon = (e) => {
+    if (e) e.preventDefault();
+    if (!promoCodeInput.trim()) return;
+    const res = applyPromoCode(promoCodeInput.trim(), totals.subtotal);
+    if (res.valid) {
+      setDiscount(res.discount);
+      setPromoStatus({ success: true, msg: `Applied ${res.code}: Saved ₹${res.discount}!` });
+    } else {
+      setPromoStatus({ success: false, msg: res.message });
+    }
+  };
 
   const totalItems = cart.length;
   const totalQty = cart.reduce((sum, item) => sum + item.qty, 0);
@@ -104,10 +178,11 @@ export default function Billing() {
       });
       setShowCustomerModal(false);
       setNewCustomerForm({ name: "", phone: "" });
+      showToast(`Customer ${newCustomerForm.name} saved!`);
     }
   };
 
-  // Generate invoice
+  // Generate invoice & record sale to database
   const handleGenerateInvoice = () => {
     if (cart.length === 0) {
       alert("Cart is empty! Scan or add items to generate an invoice.");
@@ -133,13 +208,15 @@ export default function Billing() {
       sgst: totals.sgst,
       grandTotal: totals.grandTotal,
     };
+
+    // Save to centralized store and decrement stock
+    recordPosSale(newInvoice);
     setGeneratedInvoice(newInvoice);
   };
 
   const completeAndNewSale = () => {
     setGeneratedInvoice(null);
-    setCart([]);
-    setDiscount(0);
+    clearCart();
     setCustomer({ name: "Walk-in Customer", phone: "", points: 0 });
   };
 
@@ -180,6 +257,34 @@ export default function Billing() {
               Search / Add
             </button>
           </form>
+
+          {/* Quick suggestions when typing */}
+          {searchSuggestions.length > 0 && (
+            <div className="bg-white p-3 rounded-xl shadow-sm border border-[#bfc7d2] -mt-3 flex flex-wrap gap-2 items-center">
+              <span className="text-xs text-[#707881] font-semibold mr-1">Matching:</span>
+              {searchSuggestions.map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => {
+                    addItemToCart(item);
+                    setSearchQuery("");
+                  }}
+                  className="px-3 py-1.5 bg-[#eff4ff] hover:bg-[#dce9ff] text-[#006194] text-xs font-bold rounded-lg flex items-center gap-1.5 transition-colors border border-[#bfc7d2]/40"
+                >
+                  <span>{item.name}</span>
+                  <span className="opacity-75">₹{item.price.toFixed(2)}</span>
+                  <span
+                    className={`text-[10px] px-1.5 py-0.5 rounded ${
+                      item.stock > 0 ? "bg-emerald-100 text-emerald-800" : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {item.stock > 0 ? `${item.stock} in stock` : "Out of stock"}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           {/* Items list */}
           <div className="flex-1 bg-white rounded-xl shadow-sm border border-[#bfc7d2] overflow-hidden flex flex-col min-h-[420px]">
@@ -321,14 +426,43 @@ export default function Billing() {
                 </div>
               </div>
 
+              {/* Promo Code Input */}
               <div className="pt-3 border-t border-[#bfc7d2]/30">
-                <label className="block text-xs text-[#3f4850] mb-1 font-semibold">Discount Amount (₹)</label>
+                <label className="block text-xs text-[#3f4850] mb-1 font-semibold">Apply Promo Coupon</label>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    placeholder="e.g. SAVE50, FRESH20"
+                    value={promoCodeInput}
+                    onChange={(e) => setPromoCodeInput(e.target.value.toUpperCase())}
+                    className="flex-1 border border-[#bfc7d2] rounded-lg px-3 py-1.5 uppercase font-mono text-xs focus:border-[#006194] outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    className="px-3 py-1.5 bg-[#006194] text-white text-xs font-bold rounded-lg hover:bg-[#007bb9] transition-colors"
+                  >
+                    Apply
+                  </button>
+                </div>
+                {promoStatus && (
+                  <p className={`text-[11px] mt-1 font-semibold ${promoStatus.success ? "text-emerald-700" : "text-rose-600"}`}>
+                    {promoStatus.msg}
+                  </p>
+                )}
+              </div>
+
+              <div className="pt-2">
+                <label className="block text-xs text-[#3f4850] mb-1 font-semibold">Manual Discount (₹)</label>
                 <div className="flex items-center gap-2">
                   <input
                     className="flex-1 border border-[#bfc7d2] rounded-lg px-3 py-1.5 text-right focus:border-[#006194] outline-none text-sm font-semibold"
                     type="number"
                     value={discount}
-                    onChange={(e) => setDiscount(Math.max(0, Number(e.target.value) || 0))}
+                    onChange={(e) => {
+                      setDiscount(Math.max(0, Number(e.target.value) || 0));
+                      setPromoStatus(null);
+                    }}
                     min={0}
                   />
                   <span className="bg-[#dce9ff] p-2 rounded-lg text-[#006194]">
@@ -533,6 +667,14 @@ export default function Billing() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Notification Toast */}
+      {toastMsg && (
+        <div className="fixed bottom-6 right-6 bg-[#006194] text-white px-5 py-3 rounded-xl shadow-2xl z-50 text-sm font-semibold flex items-center gap-2 animate-in fade-in duration-300">
+          <span className="material-symbols-outlined text-[20px]">check_circle</span>
+          {toastMsg}
         </div>
       )}
     </div>

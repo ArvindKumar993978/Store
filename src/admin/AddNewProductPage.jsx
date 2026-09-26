@@ -2,12 +2,14 @@ import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import AddproTopNav from "../component/AddproTopNav";
+import { useStore } from "../context/StoreContext";
 
 const CATEGORY_OPTIONS = ["Groceries", "Dairy", "Snacks", "Staples", "Beauty & Health", "Electronics", "Apparel"];
 const GST_OPTIONS = ["GST 0% (Exempt)", "GST 5%", "GST 12%", "GST 18%", "GST 28%"];
 
 export default function AddNewProductPage() {
   const navigate = useNavigate();
+  const { addProduct } = useStore();
   const fileInputRef = useRef(null);
 
   // Form states
@@ -56,10 +58,23 @@ export default function AddNewProductPage() {
       return;
     }
 
+    addProduct({
+      name,
+      sku: sku || undefined,
+      category,
+      description,
+      purchasePrice,
+      sellingPrice,
+      gst,
+      initialStock: initialStock || "0",
+      lowStockThreshold: lowStockThreshold || "10",
+      imagePreview
+    });
+
     setSavedSuccess(true);
     setTimeout(() => {
       navigate("/product");
-    }, 1000);
+    }, 900);
   };
 
   return (

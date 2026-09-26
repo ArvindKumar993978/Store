@@ -1,86 +1,14 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import Topnav from "../component/Topnav";
-
-/*
-  EASY-TO-EDIT VERSION
-  --------------------
-  Every color, spacing, and font-size is written directly inside the
-  className as a Tailwind "arbitrary value", e.g. bg-[#006194].
-
-  Quick color reference:
-    #006194  -> primary (blue)
-    #007bb9  -> primary-container (icon backgrounds)
-    #006a61  -> secondary (teal)
-    #86f2e4  -> secondary-container (light teal, "Paid" badge)
-    #894d00  -> tertiary (brown/orange)
-    #ac6200  -> tertiary-container ("Pending" badge)
-    #ba1a1a  -> error (red)
-    #ffdad6  -> error-container ("Cancelled" badge)
-    #0b1c30  -> main dark text
-    #3f4850  -> secondary/gray text
-    #f8f9ff  -> page background
-    #eff4ff  -> light surface (table header, hover rows)
-    #bfc7d2  -> border color
-
-  DATA:
-  Transactions, low-stock items, and summary stats are pulled from plain
-  arrays near the top of the component (TRANSACTIONS, LOW_STOCK, STATS) —
-  edit those arrays to change the numbers/rows, no need to touch the JSX.
-*/
-
-const STATS = [
-  {
-    icon: "payments",
-    iconBg: "#007bb9",
-    label: "Today's Sales",
-    value: "\u20B912,450",
-    sub: "vs \u20B911,100 yesterday",
-    change: "+12%",
-    changeColor: "#006a61",
-  },
-  {
-    icon: "account_balance_wallet",
-    iconBg: "#006a61",
-    label: "Monthly Revenue",
-    value: "\u20B93.2L",
-    sub: "Oct 2023 Performance",
-    change: "+8.4%",
-    changeColor: "#006a61",
-  },
-  {
-    icon: "percent",
-    iconBg: "#894d00",
-    label: "Profit Margin",
-    value: "18%",
-    sub: "Average across categories",
-    change: "-1.2%",
-    changeColor: "#ba1a1a",
-  },
-  {
-    icon: "inventory",
-    iconBg: "#bfc7d2",
-    label: "Active Stock",
-    value: "452",
-    sub: "SKUs in inventory",
-    change: "Stable",
-    changeColor: "#006a61",
-  },
-];
-
-const TRANSACTIONS = [
-  { date: "Oct 24, 2023", id: "#INV-8921", customer: "Rajesh Kumar", amount: "\u20B92,450.00", status: "Paid" },
-  { date: "Oct 24, 2023", id: "#INV-8920", customer: "Anjali Sharma", amount: "\u20B9890.00", status: "Pending" },
-  { date: "Oct 23, 2023", id: "#INV-8919", customer: "Walk-in Customer", amount: "\u20B912,400.00", status: "Paid" },
-  { date: "Oct 23, 2023", id: "#INV-8918", customer: "Suresh Prabhu", amount: "\u20B94,200.00", status: "Paid" },
-  { date: "Oct 22, 2023", id: "#INV-8917", customer: "Meena Gupta", amount: "\u20B91,150.00", status: "Cancelled" },
-];
+import { useStore } from "../context/StoreContext";
 
 const STATUS_STYLES = {
   Paid: { bg: "#86f2e4", text: "#006f66" },
   Pending: { bg: "#ac6200", text: "#fffbff" },
   Cancelled: { bg: "#ffdad6", text: "#93000a" },
+  "In Transit": { bg: "#cce5ff", text: "#004b73" },
 };
 
 const QUICK_ACTIONS = [
@@ -89,15 +17,85 @@ const QUICK_ACTIONS = [
   { icon: "add_box", bg: "#ffdcc0", color: "#2d1600", label: "Add Product", sub: "List a new item", path: "/add-product" },
 ];
 
-const LOW_STOCK = [
-  { name: "Amul Butter 500g", note: "Only 2 units left", noteColor: "#ba1a1a" },
-  { name: "Parle-G 20pk", note: "Only 5 units left", noteColor: "#ba1a1a" },
-  { name: "Fortune Sunflower Oil 1L", note: "Out of stock", noteColor: "#ba1a1a" },
-  { name: "Aashirvaad Atta 5kg", note: "3 units remaining", noteColor: "#894d00" },
-];
-
 export default function AdminDashboard() {
   const navigate = useNavigate();
+  const { storeMetrics, sales, orders, products } = useStore();
+
+  const dynamicStats = useMemo(() => {
+    return [
+      {
+        icon: "payments",
+        iconBg: "#007bb9",
+        label: "Today's Sales",
+        value: `₹${Number(storeMetrics.todaySales || 0).toLocaleString("en-IN")}`,
+        sub: `${sales.length} transactions recorded`,
+        change: "+12.4%",
+        changeColor: "#006a61",
+      },
+      {
+        icon: "account_balance_wallet",
+        iconBg: "#006a61",
+        label: "Total Revenue",
+        value: `₹${Number(storeMetrics.totalRevenue || 0).toLocaleString("en-IN")}`,
+        sub: "POS + Online Storefront",
+        change: "+8.4%",
+        changeColor: "#006a61",
+      },
+      {
+        icon: "percent",
+        iconBg: "#894d00",
+        label: "Profit Margin",
+        value: "18.5%",
+        sub: "Average across categories",
+        change: "+1.2%",
+        changeColor: "#006a61",
+      },
+      {
+        icon: "inventory",
+        iconBg: "#bfc7d2",
+        label: "Active Stock",
+        value: String(products.length),
+        sub: `${storeMetrics.lowStockCount} items need attention`,
+        change: storeMetrics.lowStockCount > 0 ? `${storeMetrics.lowStockCount} Low` : "Healthy",
+        changeColor: storeMetrics.lowStockCount > 0 ? "#ba1a1a" : "#006a61",
+      },
+    ];
+  }, [storeMetrics, sales, products]);
+
+  const recentTransactions = useMemo(() => {
+    const combined = [
+      ...(sales || []).map((s) => ({
+        date: s.date || "Today",
+        id: s.id,
+        customer: s.customer || "Walk-in Customer",
+        amount: `₹${Number(s.grandTotal || s.total || 0).toFixed(2)}`,
+        status: s.status || "Paid",
+      })),
+      ...(orders || []).map((o) => ({
+        date: o.date ? new Date(o.date).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }) : "Today",
+        id: o.id,
+        customer: o.customer || (o.shippingAddress ? o.shippingAddress.split(",")[0] : "Online Customer"),
+        amount: `₹${Number(o.total || 0).toFixed(2)}`,
+        status: o.status === "Delivered" ? "Paid" : o.status || "Pending",
+      })),
+    ];
+    return combined.slice(0, 5);
+  }, [sales, orders]);
+
+  const dynamicLowStock = useMemo(() => {
+    if (storeMetrics.lowStockList && storeMetrics.lowStockList.length > 0) {
+      return storeMetrics.lowStockList.slice(0, 4).map((p) => ({
+        name: p.name,
+        note: p.stock === 0 ? "Out of stock" : `Only ${p.stock} units left`,
+        noteColor: p.stock === 0 ? "#ba1a1a" : "#894d00",
+      }));
+    }
+    return [
+      { name: "Amul Butter 500g", note: "Only 2 units left", noteColor: "#ba1a1a" },
+      { name: "Parle-G 20pk", note: "Only 5 units left", noteColor: "#ba1a1a" },
+      { name: "Fortune Sunflower Oil 1L", note: "Out of stock", noteColor: "#ba1a1a" },
+    ];
+  }, [storeMetrics.lowStockList]);
   // Card hover lift + button press-scale (same behavior as the original <script>)
   useEffect(() => {
     const cards = document.querySelectorAll(".glass-card");
@@ -167,8 +165,8 @@ export default function AdminDashboard() {
       {/* ---------- Main Content ---------- */}
       <main className="ml-60 p-6 min-h-screen">
         {/* Summary cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8" p-6>
-          {STATS.map((stat) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+          {dynamicStats.map((stat) => (
             <div key={stat.label} className="glass-card p-6 rounded-xl shadow-sm">
               <div className="flex justify-between items-start mb-4">
                 <div
@@ -218,29 +216,32 @@ export default function AdminDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#bfc7d2]/20">
-                  {TRANSACTIONS.map((tx) => (
-                    <tr
-                      key={tx.id}
-                      onClick={() => navigate("/sales")}
-                      className="hover:bg-[#eff4ff] transition-colors cursor-pointer"
-                    >
-                      <td className="px-6 py-4 text-sm">{tx.date}</td>
-                      <td className="px-6 py-4 text-base text-[#006194] font-bold">{tx.id}</td>
-                      <td className="px-6 py-4 text-sm font-medium">{tx.customer}</td>
-                      <td className="px-6 py-4 text-base text-right">{tx.amount}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span
-                          className="px-4 py-1 rounded-full text-[12px] font-semibold"
-                          style={{
-                            backgroundColor: STATUS_STYLES[tx.status].bg,
-                            color: STATUS_STYLES[tx.status].text,
-                          }}
-                        >
-                          {tx.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
+                  {recentTransactions.map((tx) => {
+                    const statusStyle = STATUS_STYLES[tx.status] || { bg: "#eff4ff", text: "#006194" };
+                    return (
+                      <tr
+                        key={tx.id}
+                        onClick={() => navigate("/sales")}
+                        className="hover:bg-[#eff4ff] transition-colors cursor-pointer"
+                      >
+                        <td className="px-6 py-4 text-sm">{tx.date}</td>
+                        <td className="px-6 py-4 text-base text-[#006194] font-bold">{tx.id}</td>
+                        <td className="px-6 py-4 text-sm font-medium">{tx.customer}</td>
+                        <td className="px-6 py-4 text-base text-right">{tx.amount}</td>
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className="px-4 py-1 rounded-full text-[12px] font-semibold"
+                            style={{
+                              backgroundColor: statusStyle.bg,
+                              color: statusStyle.text,
+                            }}
+                          >
+                            {tx.status}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -281,11 +282,11 @@ export default function AdminDashboard() {
                   Low Stock
                 </h2>
                 <span className="bg-[#ffdad6] text-[#93000a] px-2 py-1 rounded-md text-[12px] font-bold">
-                  {LOW_STOCK.length} Alerts
+                  {dynamicLowStock.length} Alerts
                 </span>
               </div>
               <div className="space-y-4">
-                {LOW_STOCK.map((item) => (
+                {dynamicLowStock.map((item) => (
                   <div
                     key={item.name}
                     className="flex justify-between items-center p-2 rounded-lg hover:bg-[#eff4ff]"

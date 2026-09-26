@@ -2,6 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import Topnav from "../component/Topnav";
+import { useStore } from "../context/StoreContext";
 
 /*
   Product Inventory
@@ -31,56 +32,9 @@ const STATUS_COLORS = {
   "Out of Stock": "#ba1a1a",
 };
 
-const PRODUCTS_INITIAL = [
-  {
-    name: "Whole Milk - 1L",
-    brand: "Farm Fresh Organics",
-    sku: "MK-10293",
-    category: "Dairy",
-    price: "₹45.00",
-    stock: 12,
-    status: "Low Stock",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCrYvrSJ7OcbW0gUMWUZhjsLn4Pukj0UAun_Q0tyy8ObC0B4wHpGflnCEa4tsSp497gGwtn1sDQeZ-Vw20_QRCWGl5N3f2_otUNzNAa1jJH7GNG9Nt4rqxc8GeqYLQbOvkUSsvqNtNb4L7GXkE9VbD591Dt4h4oqdsaLfVr118UO_UWOfiIn96NFzFsXO8fVFionsDy1gN94cTzEXCZ64xGXyslRYLr7YKdH6Lrctay2TGuf29M6N65JNa1zl0U9Q3QIgunWh3vzzcL",
-  },
-  {
-    name: "Honey Loops Cereal",
-    brand: "Morning Joy Foods",
-    sku: "SN-44582",
-    category: "Snacks",
-    price: "₹185.00",
-    stock: 148,
-    status: "In Stock",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuD75B0M5a_k3dNhXaVz3cSNSoUgZgmqeaLYFxo_kaDMrvuYRRgsNLsYGny-lQYAUl5J-EWqKJs33b3yKxrU5MOZqiZcHhQmhJtpDjZo87KCl4mzkSQspLPNaC6gL2UwrLDpTph6i6Z4ahPvm7xPKzVS15ScZkuzyci3w_TBdWRNaTmcqE68RV8aY1jDbcW2Y83RuZj_74I5mr1dn3hrqfVSqWbMVUMtN1uyjy3UbCCNW_SaV5FWc5Atti8Wk7dbvtLx54vVku8dE0Ri",
-  },
-  {
-    name: "Luxury Aloe Soap",
-    brand: "Pure Skin Essentials",
-    sku: "PC-99012",
-    category: "Personal Care",
-    price: "₹65.00",
-    stock: 0,
-    status: "Out of Stock",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAasGleJiiZ8iAmlKWmc-EL8-CR7ZNUfGxhKx056UQh8xiWoDlmSAL-mzHkJgR4iXqs5MT3vCNAMJaBzVBXxi9eph4NmNmAMY-yqP5rty2xWP3HhaQHJ22hlAylPGbxQLR7_VQ9ov8NsOj5-eUPBFXx-IN81ToxT70AIKNcNr6IIRjdYyGDQmmS2iUGqB70BG7q0eag-IFSutG3dlQ6jg4eqFTfRwpMTylj7dtXliNJrQISzzJguYEPWbUk3aTaOyE57tK28_rgPavB",
-  },
-  {
-    name: "Premium Basmati Rice",
-    brand: "Royal Grains Co.",
-    sku: "ST-11223",
-    category: "Staples",
-    price: "₹450.00",
-    stock: 52,
-    status: "In Stock",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuC1yFWaAXcESGoqnqiUO8q00kspWzvzcj33bcf8VG_VyINE5Guojx3DsxfykrmlLX5CO0JIwe9KgQba-_3rFTfGB08RaWlbYR4Ef6jDsUbMYOHKYPuE-_eoS9ktU3Xw2RgreUYxXuSjElqFWu_ll3NoKUI7KCyBT_KHS7leFlPLDcV-x3iZ5CkADTI67V7sTzxduwHGa-sKCFZmjB0aE4cfcqt0ExBck1AtGjx6W7aICGDnOOKAAc1YKdJ8lFcWfOy5uORKCuf9ChbS",
-  },
-];
-
 export default function Product() {
   const navigate = useNavigate();
-  const [products, setProducts] = useState(PRODUCTS_INITIAL);
+  const { products, updateProduct, deleteProduct } = useStore();
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
   const [selectedStockFilter, setSelectedStockFilter] = useState("All Status");
@@ -103,18 +57,26 @@ export default function Product() {
 
   // Filtered products calculation
   const filteredProducts = useMemo(() => {
-    return products.filter((p) => {
+    return products.map((p) => {
+      const priceStr = typeof p.price === "number" ? `₹${p.price.toFixed(2)}` : p.price;
+      const statusStr = p.stock === 0 ? "Out of Stock" : p.stock <= (p.lowStockThreshold || 10) ? "Low Stock" : "In Stock";
+      return {
+        ...p,
+        priceDisplay: priceStr,
+        status: statusStr,
+      };
+    }).filter((p) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
         !term ||
         p.name.toLowerCase().includes(term) ||
-        p.brand.toLowerCase().includes(term) ||
-        p.sku.toLowerCase().includes(term) ||
-        p.category.toLowerCase().includes(term);
+        (p.brand && p.brand.toLowerCase().includes(term)) ||
+        (p.sku && p.sku.toLowerCase().includes(term)) ||
+        (p.category && p.category.toLowerCase().includes(term));
 
       const matchesCat =
         selectedCategory === "All" ||
-        p.category.toLowerCase() === selectedCategory.toLowerCase();
+        (p.category && p.category.toLowerCase() === selectedCategory.toLowerCase());
 
       const matchesStock =
         selectedStockFilter === "All Status" ||
@@ -141,7 +103,9 @@ export default function Product() {
   };
 
   const confirmDelete = () => {
-    setProducts((prev) => prev.filter((p) => p.sku !== productToDelete.sku));
+    if (productToDelete) {
+      deleteProduct(productToDelete.id);
+    }
     closeDeleteModal();
   };
 
@@ -150,9 +114,9 @@ export default function Product() {
     setProductToEdit(product);
     setEditFormData({
       name: product.name,
-      brand: product.brand,
+      brand: product.brand || "",
       category: product.category,
-      price: product.price,
+      price: typeof product.price === "number" ? product.price : parseFloat(String(product.price).replace(/[^0-9.]/g, "") || 0),
       stock: product.stock,
       status: product.status,
     });
@@ -166,28 +130,16 @@ export default function Product() {
     e.preventDefault();
     if (!productToEdit) return;
 
-    // determine status automatically if stock changed
-    let autoStatus = editFormData.status;
     const stockNum = Number(editFormData.stock);
-    if (stockNum === 0) autoStatus = "Out of Stock";
-    else if (stockNum <= 15) autoStatus = "Low Stock";
-    else autoStatus = "In Stock";
+    const priceNum = parseFloat(String(editFormData.price).replace(/[^0-9.]/g, "") || 0);
 
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.sku === productToEdit.sku
-          ? {
-              ...p,
-              name: editFormData.name,
-              brand: editFormData.brand,
-              category: editFormData.category,
-              price: editFormData.price.startsWith("₹") ? editFormData.price : `₹${editFormData.price}`,
-              stock: stockNum,
-              status: autoStatus,
-            }
-          : p
-      )
-    );
+    updateProduct(productToEdit.id, {
+      name: editFormData.name,
+      brand: editFormData.brand,
+      category: editFormData.category,
+      price: priceNum,
+      stock: stockNum,
+    });
     closeEditModal();
   };
 
@@ -400,7 +352,7 @@ export default function Product() {
                             {p.category}
                           </span>
                         </td>
-                        <td className="px-6 py-4 text-right text-base font-medium">{p.price}</td>
+                        <td className="px-6 py-4 text-right text-base font-medium">{p.priceDisplay || p.price}</td>
                         <td className="px-6 py-4 text-right">
                           <div className="inline-flex flex-col items-end">
                             <span className="text-base font-bold" style={{ color: STATUS_COLORS[p.status] }}>
@@ -472,7 +424,7 @@ export default function Product() {
                     </div>
                     <div>
                       <div className="flex justify-between items-center mb-3 pt-2 border-t border-gray-100">
-                        <span className="text-lg font-bold text-[#006194]">{p.price}</span>
+                        <span className="text-lg font-bold text-[#006194]">{p.priceDisplay || p.price}</span>
                         <span className="text-xs font-semibold text-[#3f4850]">Stock: {p.stock}</span>
                       </div>
                       <div className="flex gap-2">

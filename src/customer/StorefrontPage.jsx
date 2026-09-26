@@ -2,66 +2,20 @@ import React, { useState, useMemo } from "react";
 import StorefrontNavbar from "../component/StorefrontNavbar";
 import { useNavigate } from "react-router-dom";
 import { useCart } from "../component/CartContext";
+import { useStore } from "../context/StoreContext";
 
 const CATEGORIES = [
   { icon: "bakery_dining", label: "All Fresh" },
   { icon: "egg", label: "Dairy & Eggs" },
   { icon: "cookie", label: "Snacks & Drinks" },
   { icon: "nutrition", label: "Staples & Grains" },
-  { icon: "spa", label: "Spices & Herbs" },
-];
-
-const PRODUCTS = [
-  {
-    id: 1,
-    category: "Dairy",
-    name: "Fresh Farm Whole Milk",
-    desc: "1 Litre Glass Bottle",
-    price: "₹65.00",
-    priceValue: 65,
-    badge: "FRESH",
-    badgeColor: "#00855b",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCug24rYXbNvHRakxwz5VFq1rzZSZxy2QtcT35-fkkw8qpuQpQ0XBGW-XgxExj7GhCzzvBXlfjFzA737-HlZRIA6lGqcQ3U8nCShPJtEO08Vzcl9hZ8giDFbXlCJbZtWCiqIQL00oq8toLXsjZFGrceAGr6J3j5rpqdkopq25v63lTX797Vj7zE7m136fRpcxu-HpcNI9HlV6eT5h5MX41366jzuooBdow4F2xStBfR3VtvbcUyE_JhGx8Qk9EV2EDkPz1ZMXSO7COh",
-  },
-  {
-    id: 2,
-    category: "Staples",
-    name: "Aged Basmati Rice",
-    desc: "5kg Premium Pack",
-    price: "₹850.00",
-    priceValue: 850,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuAF4VJLneW4WMyu-X1o0Ar4gBxRw6SeGIPgO3wd29vBUSZHZW9f6QvoxmMWOBT9iJxFvw6VrUJIlj-nsZXmYPlIq4l-el7Q6srmwTBBL8nhtu4hivDZ1cn76_dbm7LgMB6ecWVHvPyJFV3U15WHCyZ3uFtUWysSK_GHBJo_QizNyibkN-5bUqyTOG_HjyYT3Slq6GDAeyScMixzYqud_h_BepgGy9SplTknEdzoyMeFKYYDbuhjtyomLw56kKQvo7uGI58MTRSe89_Z",
-  },
-  {
-    id: 3,
-    category: "Spices",
-    name: "Organic Spice Combo",
-    desc: "Set of 3 (100g each)",
-    price: "₹249.00",
-    priceValue: 249,
-    originalPrice: "₹320",
-    badge: "OFFER",
-    badgeColor: "#ba1a1a",
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuBWBNOPs_CDIk2oyDqZCpwZ3Zn7zlVShI75XDCueVwNVrDL7VKkBfSwAFcNOqd3u-Fn5OfwKlBrKg5WEhB54HXQ2_UX1nwGZGw_kArKNkO-d40j55zxUqxWKPtV08EMtjbXyu7Bm1KC727mgbEwEjZTgPjmYCR5CtmyFxOwDt3wlq57wIV45Dk1vhllfzriX8mK3UjXJXWemmAzuxjGnG-t-WW0QTX4YHPqQOinnZWZwU_YjrRbpHlAGzSaT4olhqYqRGiZ_1LPXojX",
-  },
-  {
-    id: 4,
-    category: "Dairy",
-    name: "Pure A2 Cow Ghee",
-    desc: "500ml Glass Jar",
-    price: "₹720.00",
-    priceValue: 720,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuCuouOo7rgOoxPmq3rHs0dlHs6A6TK6JhfQrGiNklYXx1xYyzwWdL6tl19SPIQWBaaZI57WUpptlA_UqCLCubwclpwFfmZyWAYzxwviEmOmGF8NO8Ctdqpxjb8hifmKJr9yOugrL9kIYaXsw4A1A8J0f-MjEoH4DICcsimg2Yd0V4rM4wRKXdnZjugP576-Me5Tr969FBbmF3QLRKaPWVZlTB5KDpjpfuwJc3iNfpSZ6gMbxBOgWzVMNjeEOb4r-8jWcbvdQ-0f_3OH",
-  },
+  { icon: "spa", label: "Personal Care" },
 ];
 
 export default function StorefrontPage() {
   const navigate = useNavigate();
   const { addToCart, cartCount } = useCart();
+  const { products } = useStore();
   const [searchValue, setSearchValue] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All Fresh");
   const [maxPrice, setMaxPrice] = useState(2000);
@@ -72,29 +26,31 @@ export default function StorefrontPage() {
   const [toastMessage, setToastMessage] = useState("");
   const [newsletterEmail, setNewsletterEmail] = useState("");
 
+  // Quick View Product Modal State
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
+  const [quickViewQty, setQuickViewQty] = useState(1);
+
   const showToast = (msg) => {
     setToastMessage(msg);
     setTimeout(() => setToastMessage(""), 3500);
   };
 
-  const handleAddToCart = (product) => {
-    addToCart({
-      id: product.id,
-      name: product.name,
-      desc: product.desc,
-      price: product.priceValue,
-      image: product.image,
-    });
+  const handleAddToCart = (product, qty = 1) => {
+    if (product.stock === 0) {
+      showToast(`${product.name} is currently Out of Stock!`);
+      return;
+    }
+    addToCart(product, qty);
     setAddedIds((prev) => ({ ...prev, [product.id]: true }));
-    showToast(`Added ${product.name} to basket!`);
+    showToast(`Added ${qty > 1 ? qty + "x " : ""}${product.name} to basket!`);
     setTimeout(() => {
       setAddedIds((prev) => ({ ...prev, [product.id]: false }));
     }, 2000);
   };
 
   const handleClaimCoupon = () => {
-    navigator.clipboard?.writeText("KRISHNA100");
-    showToast("Coupon KRISHNA100 copied! Use at checkout to save ₹100.");
+    navigator.clipboard?.writeText("SAVE50");
+    showToast("Coupon SAVE50 copied! Use at checkout to save ₹50.");
   };
 
   const handleNewsletterSubmit = (e) => {
@@ -108,21 +64,32 @@ export default function StorefrontPage() {
   };
 
   const displayedProducts = useMemo(() => {
-    return PRODUCTS.filter((p) => {
+    const list = products.map((p) => {
+      const pVal = typeof p.price === "number" ? p.price : parseFloat(String(p.price).replace(/[^0-9.]/g, "") || 0);
+      return {
+        ...p,
+        priceValue: pVal,
+        priceDisplay: typeof p.price === "number" ? `₹${p.price.toFixed(2)}` : p.price,
+      };
+    });
+
+    return list.filter((p) => {
+      const cat = p.category ? p.category.toLowerCase() : "";
       const matchesCat =
         selectedCategory === "All Fresh" ||
-        p.category.toLowerCase().includes(selectedCategory.toLowerCase()) ||
-        (selectedCategory === "Dairy & Eggs" && p.category === "Dairy") ||
-        (selectedCategory === "Staples & Grains" && p.category === "Staples") ||
-        (selectedCategory === "Spices & Herbs" && p.category === "Spices");
+        cat.includes(selectedCategory.toLowerCase()) ||
+        (selectedCategory === "Dairy & Eggs" && (cat.includes("dairy") || cat.includes("egg"))) ||
+        (selectedCategory === "Snacks & Drinks" && (cat.includes("snack") || cat.includes("drink"))) ||
+        (selectedCategory === "Staples & Grains" && (cat.includes("staple") || cat.includes("grain"))) ||
+        (selectedCategory === "Personal Care" && (cat.includes("personal") || cat.includes("care") || cat.includes("soap") || cat.includes("beauty")));
 
       const matchesPrice = p.priceValue <= maxPrice;
-      const matchesSale = !onlySale || Boolean(p.badge === "OFFER" || p.originalPrice);
-      const matchesStock = !onlyInStock || p.id !== 999;
+      const matchesSale = !onlySale || Boolean(p.badge === "OFFER" || p.badge === "SALE" || p.originalPrice);
+      const matchesStock = !onlyInStock || p.stock > 0;
       const matchesSearch =
         !searchValue ||
         p.name.toLowerCase().includes(searchValue.toLowerCase()) ||
-        p.category.toLowerCase().includes(searchValue.toLowerCase());
+        cat.includes(searchValue.toLowerCase());
 
       return matchesCat && matchesPrice && matchesSale && matchesStock && matchesSearch;
     }).sort((a, b) => {
@@ -131,7 +98,7 @@ export default function StorefrontPage() {
       if (sortBy === "newest") return b.id - a.id;
       return a.id - b.id;
     });
-  }, [selectedCategory, maxPrice, onlySale, onlyInStock, searchValue, sortBy]);
+  }, [products, selectedCategory, maxPrice, onlySale, onlyInStock, searchValue, sortBy]);
 
   return (
     <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen">
@@ -319,47 +286,90 @@ export default function StorefrontPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 {displayedProducts.map((product) => {
                   const isAdded = addedIds[product.id];
+                  const isOutOfStock = product.stock === 0;
+                  const isLowStock = product.stock > 0 && product.stock <= 5;
                   return (
                     <div
                       key={product.id}
-                      className="bg-white rounded-xl shadow-sm border border-[#bfc7d2]/30 overflow-hidden flex flex-col transition-all hover:shadow-md"
+                      className="bg-white rounded-xl shadow-sm border border-[#bfc7d2]/30 overflow-hidden flex flex-col transition-all hover:shadow-md group relative"
                     >
-                      <div className="relative aspect-square overflow-hidden bg-[#f2f4f6]">
+                      <div
+                        onClick={() => {
+                          setQuickViewProduct(product);
+                          setQuickViewQty(1);
+                        }}
+                        className="relative aspect-square overflow-hidden bg-[#f2f4f6] cursor-pointer"
+                      >
                         <img
-                          className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                           alt={product.name}
                           src={product.image}
                         />
                         {product.badge && (
                           <span
-                            className="absolute top-3 left-3 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm"
-                            style={{ backgroundColor: product.badgeColor }}
+                            className="absolute top-3 left-3 text-white text-[10px] font-bold px-2 py-1 rounded-full shadow-sm z-10"
+                            style={{ backgroundColor: product.badgeColor || "#006194" }}
                           >
                             {product.badge}
                           </span>
                         )}
+                        {/* Out of Stock overlay */}
+                        {isOutOfStock && (
+                          <div className="absolute inset-0 bg-slate-900/60 backdrop-blur-[2px] flex flex-col items-center justify-center p-2 text-center z-10">
+                            <span className="bg-red-600 text-white text-[11px] font-bold px-3 py-1 rounded-full uppercase tracking-wider shadow">
+                              Out of Stock
+                            </span>
+                            <span className="text-white text-xs mt-1 opacity-90">Restocking soon</span>
+                          </div>
+                        )}
+                        {/* Quick View Button on Hover */}
+                        <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                          <span className="bg-white/95 text-slate-800 text-xs font-bold px-3 py-1.5 rounded-full shadow-md flex items-center gap-1">
+                            <span className="material-symbols-outlined text-sm">visibility</span> Quick View
+                          </span>
+                        </div>
                       </div>
                       <div className="p-4 flex flex-col flex-1">
-                        <p className="text-xs text-[#707881] uppercase tracking-wider mb-1">{product.category}</p>
-                        <h3 className="text-[18px] font-semibold mb-1 leading-tight">{product.name}</h3>
-                        <p className="text-sm text-[#3f4850] mb-4">{product.desc}</p>
+                        <div className="flex items-center justify-between mb-1">
+                          <p className="text-xs text-[#707881] uppercase tracking-wider">{product.category}</p>
+                          {isLowStock && (
+                            <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                              Only {product.stock} left
+                            </span>
+                          )}
+                        </div>
+                        <h3
+                          onClick={() => {
+                            setQuickViewProduct(product);
+                            setQuickViewQty(1);
+                          }}
+                          className="text-[18px] font-semibold mb-1 leading-tight hover:text-[#006194] cursor-pointer transition-colors"
+                        >
+                          {product.name}
+                        </h3>
+                        <p className="text-sm text-[#3f4850] mb-4 line-clamp-2">{product.desc}</p>
                         <div className="mt-auto flex items-center justify-between">
                           {product.originalPrice ? (
                             <div className="flex flex-col">
                               <span className="text-[#3f4850] line-through text-xs">{product.originalPrice}</span>
-                              <span className="text-[20px] text-[#006194] font-bold">{product.price}</span>
+                              <span className="text-[20px] text-[#006194] font-bold">{product.priceDisplay || product.price}</span>
                             </div>
                           ) : (
-                            <span className="text-[20px] text-[#006194] font-bold">{product.price}</span>
+                            <span className="text-[20px] text-[#006194] font-bold">{product.priceDisplay || product.price}</span>
                           )}
                           <button
                             onClick={() => handleAddToCart(product)}
-                            className="w-10 h-10 rounded-full flex items-center justify-center transition-all active:scale-90 shadow-sm"
-                            style={{ backgroundColor: isAdded ? "#00855b" : "#006194" }}
-                            title="Add to Basket"
+                            disabled={isOutOfStock}
+                            className={`w-10 h-10 rounded-full flex items-center justify-center transition-all shadow-sm ${
+                              isOutOfStock
+                                ? "bg-slate-200 text-slate-400 cursor-not-allowed"
+                                : "active:scale-90 text-white"
+                            }`}
+                            style={{ backgroundColor: isOutOfStock ? undefined : (isAdded ? "#00855b" : "#006194") }}
+                            title={isOutOfStock ? "Out of Stock" : "Add to Basket"}
                           >
-                            <span className="material-symbols-outlined text-white">
-                              {isAdded ? "check" : "add_shopping_cart"}
+                            <span className="material-symbols-outlined text-base">
+                              {isOutOfStock ? "block" : (isAdded ? "check" : "add_shopping_cart")}
                             </span>
                           </button>
                         </div>
@@ -473,6 +483,118 @@ export default function StorefrontPage() {
           </div>
         </div>
       </footer>
+
+      {/* Quick View Product Modal */}
+      {quickViewProduct && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl max-w-2xl w-full overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200 border border-slate-200 flex flex-col md:flex-row">
+            {/* Modal Image */}
+            <div className="md:w-1/2 bg-slate-50 relative p-6 flex items-center justify-center border-b md:border-b-0 md:border-r border-slate-100">
+              <img
+                src={quickViewProduct.image}
+                alt={quickViewProduct.name}
+                className="max-h-64 object-contain rounded-xl shadow-sm"
+              />
+              {quickViewProduct.stock === 0 && (
+                <div className="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase">
+                  Out of Stock
+                </div>
+              )}
+            </div>
+
+            {/* Modal Details */}
+            <div className="p-6 md:w-1/2 flex flex-col justify-between">
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold uppercase tracking-wider text-[#006194] bg-[#dae2fd] px-2.5 py-0.5 rounded-full">
+                    {quickViewProduct.category || "Grocery"}
+                  </span>
+                  <button
+                    onClick={() => setQuickViewProduct(null)}
+                    className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-lg">close</span>
+                  </button>
+                </div>
+
+                <h2 className="text-2xl font-bold text-slate-900 mb-2">{quickViewProduct.name}</h2>
+                <p className="text-slate-600 text-sm mb-4 leading-relaxed">
+                  {quickViewProduct.desc || "Fresh and authentic premium grocery product supplied directly from certified farms & partners."}
+                </p>
+
+                {/* Pricing & Stock Status */}
+                <div className="flex items-baseline gap-3 mb-4">
+                  <span className="text-2xl font-black text-[#006194]">
+                    {quickViewProduct.priceDisplay || quickViewProduct.price}
+                  </span>
+                  {quickViewProduct.originalPrice && (
+                    <span className="text-sm text-slate-400 line-through">
+                      {quickViewProduct.originalPrice}
+                    </span>
+                  )}
+                  <span className={`text-xs font-semibold px-2 py-0.5 rounded ${
+                    quickViewProduct.stock > 5 ? "bg-emerald-100 text-emerald-800" :
+                    quickViewProduct.stock > 0 ? "bg-amber-100 text-amber-800" : "bg-red-100 text-red-800"
+                  }`}>
+                    {quickViewProduct.stock > 0 ? `${quickViewProduct.stock} Available` : "Sold Out"}
+                  </span>
+                </div>
+
+                {/* SKU & Brand info */}
+                <div className="text-xs text-slate-500 space-y-1 mb-6 border-t border-slate-100 pt-3">
+                  <p><span className="font-semibold text-slate-700">SKU:</span> {quickViewProduct.sku || `SKU-${quickViewProduct.id}`}</p>
+                  <p><span className="font-semibold text-slate-700">Delivery:</span> In stock & ready for immediate same-day dispatch</p>
+                </div>
+              </div>
+
+              {/* Quantity selector & Add to cart button */}
+              <div>
+                {quickViewProduct.stock > 0 ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-bold text-slate-700 uppercase">Quantity:</span>
+                      <div className="flex items-center border border-slate-300 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => setQuickViewQty((q) => Math.max(1, q - 1))}
+                          className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                        >
+                          -
+                        </button>
+                        <span className="px-4 py-1 font-bold text-sm min-w-[2.5rem] text-center">
+                          {quickViewQty}
+                        </span>
+                        <button
+                          onClick={() => setQuickViewQty((q) => Math.min(quickViewProduct.stock, q + 1))}
+                          className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold"
+                        >
+                          +
+                        </button>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        handleAddToCart(quickViewProduct, quickViewQty);
+                        setQuickViewProduct(null);
+                      }}
+                      className="w-full bg-[#006194] hover:bg-[#007bb9] text-white py-3 rounded-xl font-bold flex items-center justify-center gap-2 shadow-lg shadow-[#006194]/20 transition-all active:scale-[0.98]"
+                    >
+                      <span className="material-symbols-outlined text-lg">shopping_basket</span>
+                      Add {quickViewQty} to Basket • ₹{((parseFloat(String(quickViewProduct.price).replace(/[^0-9.]/g, "") || 0)) * quickViewQty).toFixed(2)}
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    disabled
+                    className="w-full bg-slate-200 text-slate-400 py-3 rounded-xl font-bold cursor-not-allowed text-center"
+                  >
+                    Item Out of Stock
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Floating notification toast */}
       {toastMessage && (
