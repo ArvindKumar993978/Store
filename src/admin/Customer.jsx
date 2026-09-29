@@ -2,36 +2,7 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import Topnav from "../component/Topnav";
-
-const SUMMARY_CARDS = [
-  {
-    icon: "person_check",
-    iconBg: "#006194",
-    label: "Active Customers",
-    value: "1,284",
-    badge: "+12%",
-    badgeColor: "#006947",
-    badgeIcon: "trending_up",
-    watermark: "groups",
-  },
-  {
-    icon: "account_balance_wallet",
-    iconBg: "#ba1a1a",
-    label: "Total Receivables",
-    value: "₹4,82,900",
-    badge: "5 Pending",
-    badgeColor: "#ba1a1a",
-    badgeIcon: "priority_high",
-    watermark: "currency_rupee",
-  },
-  {
-    icon: "workspace_premium",
-    iconBg: "#565e74",
-    label: "Loyalty Points Issued",
-    value: "85,200",
-    watermark: "stars",
-  },
-];
+import { useStore } from "../context/StoreContext";
 
 const TIER_STYLES = {
   Platinum: { bg: "#f3e8ff", text: "#7e22ce", icon: "stars" },
@@ -45,94 +16,103 @@ const AVATAR_COLORS = {
   Regular: "#565e74",
 };
 
-const INITIAL_CUSTOMERS = [
-  {
-    initials: "RJ",
-    name: "Rajesh Jha",
-    id: "CL-9021",
-    email: "rajesh.jha@example.com",
-    phone: "+91 98765 43210",
-    location: "Mumbai, Maharashtra",
-    totalPurchases: "₹1,42,500",
-    orders: 24,
-    outstanding: "₹12,400",
-    outstandingColor: "#ba1a1a",
-    tier: "Platinum",
-  },
-  {
-    initials: "AK",
-    name: "Ananya Kapoor",
-    id: "CL-8562",
-    email: "ananya.kapoor@example.com",
-    phone: "+91 88822 11223",
-    location: "Delhi, NCR",
-    totalPurchases: "₹84,200",
-    orders: 12,
-    outstanding: "₹0",
-    outstandingColor: "#006947",
-    tier: "Gold",
-  },
-  {
-    initials: "MS",
-    name: "Mohammed Sahil",
-    id: "CL-4102",
-    email: "m.sahil@example.com",
-    phone: "+91 70011 22334",
-    location: "Bengaluru, KA",
-    totalPurchases: "₹22,150",
-    orders: 4,
-    outstanding: "₹1,500",
-    outstandingColor: "#3f4850",
-    tier: "Regular",
-  },
-  {
-    initials: "PV",
-    name: "Priya Verma",
-    id: "CL-2209",
-    email: "priya.verma@example.com",
-    phone: "+91 99001 88223",
-    location: "Pune, MH",
-    totalPurchases: "₹2,10,300",
-    orders: 42,
-    outstanding: "₹42,500",
-    outstandingColor: "#ba1a1a",
-    tier: "Platinum",
-  },
-  {
-    initials: "SG",
-    name: "Suresh Gupta",
-    id: "CL-1192",
-    email: "suresh.g@example.com",
-    phone: "+91 98112 33445",
-    location: "Kolkata, WB",
-    totalPurchases: "₹56,400",
-    orders: 18,
-    outstanding: "₹0",
-    outstandingColor: "#006947",
-    tier: "Gold",
-  },
-];
-
 export default function CustomerDirectoryPage() {
   const navigate = useNavigate();
-  const [customers] = useState(INITIAL_CUSTOMERS);
+  const { customers, addCustomer } = useStore();
+
   const [selectedTier, setSelectedTier] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [messagingCustomer, setMessagingCustomer] = useState(null);
   const [messageText, setMessageText] = useState("");
-  const itemsPerPage = 4;
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [toastMessage, setToastMessage] = useState("");
+
+  const [newCustomerForm, setNewCustomerForm] = useState({
+    name: "",
+    phone: "",
+    email: "",
+    location: "Bengaluru, Karnataka",
+    tier: "Regular",
+  });
+
+  const itemsPerPage = 6;
+
+  // Dynamic summary stats from StoreContext customers
+  const summaryCards = useMemo(() => {
+    const totalCustomers = customers.length;
+    const totalPoints = customers.reduce((sum, c) => sum + (Number(c.points) || 0), 0);
+    const totalReceivables = customers.reduce((sum, c) => {
+      if (typeof c.outstanding === "string") {
+        const num = parseFloat(c.outstanding.replace(/[^0-9.]/g, "")) || 0;
+        return sum + num;
+      }
+      return sum + (Number(c.outstanding) || 0);
+    }, 0);
+
+    return [
+      {
+        icon: "person_check",
+        iconBg: "#006194",
+        label: "Active Customers",
+        value: totalCustomers.toLocaleString("en-IN"),
+        badge: "+12%",
+        badgeColor: "#006947",
+        badgeIcon: "trending_up",
+        watermark: "groups",
+      },
+      {
+        icon: "account_balance_wallet",
+        iconBg: "#ba1a1a",
+        label: "Total Receivables",
+        value: `₹${totalReceivables.toLocaleString("en-IN")}`,
+        badge: totalReceivables > 0 ? "Pending Due" : "Settled",
+        badgeColor: totalReceivables > 0 ? "#ba1a1a" : "#006947",
+        badgeIcon: totalReceivables > 0 ? "priority_high" : "check_circle",
+        watermark: "currency_rupee",
+      },
+      {
+        icon: "workspace_premium",
+        iconBg: "#565e74",
+        label: "Loyalty Points Issued",
+        value: totalPoints.toLocaleString("en-IN"),
+        badge: "Reward Active",
+        badgeColor: "#006194",
+        badgeIcon: "stars",
+        watermark: "stars",
+      },
+    ];
+  }, [customers]);
 
   const filteredCustomers = useMemo(() => {
-    return customers.filter((c) => {
+    return customers.map((c) => {
+      const tier = c.tier || "Regular";
+      const initials =
+        c.initials ||
+        (c.name
+          ? c.name
+              .trim()
+              .split(" ")
+              .map((n) => n[0])
+              .join("")
+              .slice(0, 2)
+              .toUpperCase()
+          : "CU");
+      return {
+        ...c,
+        tier,
+        initials,
+        outstandingColor: c.outstanding && c.outstanding !== "₹0" ? "#ba1a1a" : "#006947",
+      };
+    }).filter((c) => {
       const matchTier = selectedTier === "All" || c.tier.toLowerCase() === selectedTier.toLowerCase();
       const term = searchQuery.toLowerCase().trim();
       const matchSearch =
         !term ||
         c.name.toLowerCase().includes(term) ||
-        c.phone.includes(term) ||
-        c.id.toLowerCase().includes(term) ||
-        c.location.toLowerCase().includes(term);
+        (c.phone && c.phone.includes(term)) ||
+        (c.id && c.id.toLowerCase().includes(term)) ||
+        (c.location && c.location.toLowerCase().includes(term));
       return matchTier && matchSearch;
     });
   }, [customers, selectedTier, searchQuery]);
@@ -142,7 +122,7 @@ export default function CustomerDirectoryPage() {
   const currentCustomers = filteredCustomers.slice(startIndex, startIndex + itemsPerPage);
 
   const handleExportCSV = () => {
-    const headers = ["Customer ID", "Name", "Phone", "Email", "Location", "Purchases", "Orders", "Outstanding", "Tier"];
+    const headers = ["Customer ID", "Name", "Phone", "Email", "Location", "Purchases", "Orders", "Outstanding", "Tier", "Loyalty Points"];
     const rows = filteredCustomers.map((c) => [
       `"${c.id}"`,
       `"${c.name}"`,
@@ -150,9 +130,10 @@ export default function CustomerDirectoryPage() {
       `"${c.email}"`,
       `"${c.location}"`,
       `"${c.totalPurchases}"`,
-      c.orders,
+      c.orders || 0,
       `"${c.outstanding}"`,
       `"${c.tier}"`,
+      c.points || 0,
     ]);
     const csvContent =
       "data:text/csv;charset=utf-8," +
@@ -173,6 +154,38 @@ export default function CustomerDirectoryPage() {
     setMessageText("");
   };
 
+  const handleCreateCustomer = (e) => {
+    e.preventDefault();
+    if (!newCustomerForm.name.trim() || !newCustomerForm.phone.trim()) {
+      alert("Customer Name and Phone number are required!");
+      return;
+    }
+
+    addCustomer({
+      name: newCustomerForm.name.trim(),
+      phone: newCustomerForm.phone.trim(),
+      email: newCustomerForm.email.trim(),
+      location: newCustomerForm.location.trim() || "Bengaluru, Karnataka",
+      tier: newCustomerForm.tier,
+      totalPurchases: "₹0",
+      orders: 0,
+      outstanding: "₹0",
+      points: newCustomerForm.tier === "Platinum" ? 200 : newCustomerForm.tier === "Gold" ? 100 : 50,
+    });
+
+    setToastMessage(`Customer ${newCustomerForm.name} added successfully!`);
+    setTimeout(() => setToastMessage(""), 4000);
+
+    setNewCustomerForm({
+      name: "",
+      phone: "",
+      email: "",
+      location: "Bengaluru, Karnataka",
+      tier: "Regular",
+    });
+    setShowAddModal(false);
+  };
+
   return (
     <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen">
       <style>{`
@@ -189,7 +202,7 @@ export default function CustomerDirectoryPage() {
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Summary cards */}
           <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {SUMMARY_CARDS.map((card) => (
+            {summaryCards.map((card) => (
               <div
                 key={card.label}
                 className="bg-white p-6 rounded-xl shadow-sm border border-[#bfc7d2]/50 relative overflow-hidden group"
@@ -227,7 +240,7 @@ export default function CustomerDirectoryPage() {
             <div className="px-6 py-4 flex flex-col sm:flex-row justify-between items-center gap-4 border-b border-[#bfc7d2]">
               <div>
                 <h2 className="text-[20px] font-semibold text-[#191c1e]">Customer Directory</h2>
-                <p className="text-xs text-[#707881]">Search, view loyalty tiers, and message registered customers.</p>
+                <p className="text-xs text-[#707881]">Search, view loyalty tiers, and manage registered customers.</p>
               </div>
               <div className="flex flex-wrap items-center gap-3">
                 {/* Search input */}
@@ -266,6 +279,14 @@ export default function CustomerDirectoryPage() {
                   <span className="material-symbols-outlined text-[16px]">download</span>
                   Export
                 </button>
+
+                <button
+                  onClick={() => setShowAddModal(true)}
+                  className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-[#006194] rounded-lg hover:bg-[#007bb9] transition-all shadow-sm cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">person_add</span>
+                  Add Customer
+                </button>
               </div>
             </div>
 
@@ -277,72 +298,77 @@ export default function CustomerDirectoryPage() {
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider">Contact Details</th>
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider text-right">Total Purchases</th>
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider text-right">Outstanding</th>
-                    <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider text-center">Status</th>
+                    <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider text-center">Status / Tier</th>
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#bfc7d2]">
-                  {currentCustomers.map((c) => (
-                    <tr key={c.id} className="hover:bg-[#f2f4f6] transition-colors duration-150">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
-                          <div
-                            className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm"
-                            style={{ backgroundColor: `${AVATAR_COLORS[c.tier]}1A`, color: AVATAR_COLORS[c.tier] }}
-                          >
-                            {c.initials}
+                  {currentCustomers.map((c) => {
+                    const tierStyle = TIER_STYLES[c.tier] || TIER_STYLES.Regular;
+                    const avatarColor = AVATAR_COLORS[c.tier] || AVATAR_COLORS.Regular;
+
+                    return (
+                      <tr key={c.id || c.phone} className="hover:bg-[#f2f4f6] transition-colors duration-150">
+                        <td className="px-6 py-4">
+                          <div className="flex items-center gap-3">
+                            <div
+                              className="h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm"
+                              style={{ backgroundColor: `${avatarColor}1A`, color: avatarColor }}
+                            >
+                              {c.initials}
+                            </div>
+                            <div>
+                              <p className="font-semibold text-sm">{c.name}</p>
+                              <p className="text-xs text-[#3f4850]">ID: {c.id || "CL-AUTO"}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-semibold text-sm">{c.name}</p>
-                            <p className="text-xs text-[#3f4850]">ID: {c.id}</p>
+                        </td>
+                        <td className="px-6 py-4">
+                          <p className="text-sm font-medium">{c.phone}</p>
+                          <p className="text-xs text-[#3f4850]">{c.location || "Bengaluru"}</p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <p className="font-semibold text-sm">{c.totalPurchases || "₹0"}</p>
+                          <p className="text-[10px] text-[#3f4850]">{c.orders || 0} Orders</p>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <p className="text-sm font-bold" style={{ color: c.outstandingColor }}>
+                            {c.outstanding || "₹0"}
+                          </p>
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span
+                            className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter font-semibold"
+                            style={{ backgroundColor: tierStyle.bg, color: tierStyle.text }}
+                          >
+                            <span className="material-symbols-outlined text-[14px]">{tierStyle.icon}</span>
+                            {c.tier}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-right">
+                          <div className="flex justify-end gap-2">
+                            <button
+                              onClick={() => setMessagingCustomer(c)}
+                              className="p-2 text-[#006194] hover:bg-[#006194]/10 rounded-full transition-all cursor-pointer"
+                              title={`Send Message to ${c.name}`}
+                            >
+                              <span className="material-symbols-outlined text-[20px]">chat</span>
+                            </button>
+                            <button
+                              onClick={() =>
+                                navigate("/customer-profile", {
+                                  state: { customer: c },
+                                })
+                              }
+                              className="px-3 py-1 bg-white border border-[#bfc7d2] rounded-lg text-xs font-semibold hover:bg-[#006194] hover:text-white transition-all cursor-pointer"
+                            >
+                              View Details
+                            </button>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="text-sm">{c.phone}</p>
-                        <p className="text-xs text-[#3f4850]">{c.location}</p>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <p className="font-semibold text-sm">{c.totalPurchases}</p>
-                        <p className="text-[10px] text-[#3f4850]">{c.orders} Orders</p>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <p className="text-sm font-bold" style={{ color: c.outstandingColor }}>
-                          {c.outstanding}
-                        </p>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span
-                          className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] uppercase tracking-tighter font-semibold"
-                          style={{ backgroundColor: TIER_STYLES[c.tier].bg, color: TIER_STYLES[c.tier].text }}
-                        >
-                          <span className="material-symbols-outlined text-[14px]">{TIER_STYLES[c.tier].icon}</span>
-                          {c.tier}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            onClick={() => setMessagingCustomer(c)}
-                            className="p-2 text-[#006194] hover:bg-[#006194]/10 rounded-full transition-all cursor-pointer"
-                            title={`Send Message to ${c.name}`}
-                          >
-                            <span className="material-symbols-outlined text-[20px]">chat</span>
-                          </button>
-                          <button
-                            onClick={() =>
-                              navigate("/customer-profile", {
-                                state: { customer: c },
-                              })
-                            }
-                            className="px-3 py-1 bg-white border border-[#bfc7d2] rounded-lg text-xs font-semibold hover:bg-[#006194] hover:text-white transition-all cursor-pointer"
-                          >
-                            View Details
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    );
+                  })}
                   {filteredCustomers.length === 0 && (
                     <tr>
                       <td colSpan={6} className="px-6 py-12 text-center text-sm text-[#707881]">
@@ -472,6 +498,123 @@ export default function CustomerDirectoryPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+
+      {/* Add Customer Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl p-6 border border-[#bfc7d2] animate-in fade-in zoom-in-95">
+            <div className="flex justify-between items-center mb-4 border-b pb-3">
+              <div>
+                <h3 className="font-bold text-lg text-[#191c1e]">Register New Customer</h3>
+                <p className="text-xs text-[#707881]">Add client details for instant POS billing & loyalty tracking</p>
+              </div>
+              <button
+                onClick={() => setShowAddModal(false)}
+                className="p-1 text-gray-500 hover:text-black rounded-full"
+              >
+                <span className="material-symbols-outlined text-[20px]">close</span>
+              </button>
+            </div>
+            <form onSubmit={handleCreateCustomer} className="space-y-4">
+              <div>
+                <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">
+                  Full Customer / Business Name *
+                </label>
+                <input
+                  required
+                  type="text"
+                  placeholder="e.g. Ramesh Patel"
+                  value={newCustomerForm.name}
+                  onChange={(e) => setNewCustomerForm({ ...newCustomerForm, name: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-[#bfc7d2] rounded-lg text-sm outline-none focus:border-[#006194]"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">
+                    Mobile Phone *
+                  </label>
+                  <input
+                    required
+                    type="tel"
+                    placeholder="+91 98765 00000"
+                    value={newCustomerForm.phone}
+                    onChange={(e) => setNewCustomerForm({ ...newCustomerForm, phone: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-[#bfc7d2] rounded-lg text-sm outline-none focus:border-[#006194]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">
+                    Email Address
+                  </label>
+                  <input
+                    type="email"
+                    placeholder="customer@example.com"
+                    value={newCustomerForm.email}
+                    onChange={(e) => setNewCustomerForm({ ...newCustomerForm, email: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-[#bfc7d2] rounded-lg text-sm outline-none focus:border-[#006194]"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">
+                    City / Address
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Bengaluru, Karnataka"
+                    value={newCustomerForm.location}
+                    onChange={(e) => setNewCustomerForm({ ...newCustomerForm, location: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-[#bfc7d2] rounded-lg text-sm outline-none focus:border-[#006194]"
+                  />
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">
+                    Loyalty Tier
+                  </label>
+                  <select
+                    value={newCustomerForm.tier}
+                    onChange={(e) => setNewCustomerForm({ ...newCustomerForm, tier: e.target.value })}
+                    className="w-full px-3 py-2.5 border border-[#bfc7d2] rounded-lg text-sm outline-none focus:border-[#006194] bg-white cursor-pointer"
+                  >
+                    <option value="Regular">Regular (Standard)</option>
+                    <option value="Gold">Gold (5% discount tier)</option>
+                    <option value="Platinum">Platinum (Priority VIP)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="flex gap-3 pt-3">
+                <button
+                  type="submit"
+                  className="flex-1 py-2.5 bg-[#006194] text-white rounded-lg text-sm font-bold hover:bg-[#007bb9] flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-[18px]">check_circle</span>
+                  Save Customer
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-2.5 bg-gray-100 text-[#3f4850] rounded-lg text-sm font-semibold hover:bg-gray-200 cursor-pointer"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Toast feedback */}
+      {toastMessage && (
+        <div className="fixed bottom-6 right-6 bg-[#006194] text-white px-5 py-3 rounded-xl shadow-xl flex items-center gap-3 z-50 animate-in fade-in">
+          <span className="material-symbols-outlined text-[20px]">check_circle</span>
+          <p className="text-sm font-semibold">{toastMessage}</p>
         </div>
       )}
     </div>

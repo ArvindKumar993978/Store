@@ -194,8 +194,88 @@ const PROMO_CODES = {
   SAVE50: { code: "SAVE50", type: "FLAT", value: 50, minOrder: 300, desc: "₹50 off on orders ₹300+" },
   WELCOME10: { code: "WELCOME10", type: "PERCENT", value: 10, maxDiscount: 150, minOrder: 200, desc: "10% off up to ₹150" },
   FRESH20: { code: "FRESH20", type: "PERCENT", value: 20, maxDiscount: 100, minOrder: 250, desc: "20% off fresh items" },
-  FLAT100: { code: "FLAT100", type: "FLAT", value: 100, minOrder: 600, desc: "Flat ₹100 off on ₹600+" }
+  FLAT100: { code: "FLAT100", type: "FLAT", value: 100, minOrder: 600, desc: "Flat ₹100 off on ₹600+" },
+  KRISHNA100: { code: "KRISHNA100", type: "FLAT", value: 100, minOrder: 500, desc: "Flat ₹100 off on ₹500+" }
 };
+
+const DEFAULT_SETTINGS = {
+  storeName: "Krishna General Store",
+  tagline: "Your Trusted Neighborhood Grocery Partner",
+  gstin: "29AAAAA0000A1Z5",
+  address: "Shop No. 12, Main Market, Sector 4, HSR Layout, Bengaluru, Karnataka - 560102",
+  phone: "+91 98765 43210",
+  email: "support@krishnastore.in",
+  terms: "1. Payments due upon invoice presentation.\n2. Goods once sold can be returned within 48 hours with receipt."
+};
+
+const INITIAL_PURCHASES = [
+  {
+    id: "PO-4412",
+    date: new Date(Date.now() - 86400000 * 2).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+    supplier: "Farm Fresh Direct",
+    items: [{ id: 1, name: "Whole Milk - 1L (Bulk Crate)", qty: 50, unitPrice: 35.0 }],
+    subtotal: 1750,
+    tax: 87.5,
+    total: 1837.5,
+    status: "Received"
+  },
+  {
+    id: "PO-4411",
+    date: new Date(Date.now() - 86400000 * 5).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+    supplier: "Royal Grains Wholesale",
+    items: [{ id: 5, name: "Premium Basmati Rice 25kg", qty: 15, unitPrice: 380.0 }],
+    subtotal: 5700,
+    tax: 285.0,
+    total: 5985.0,
+    status: "Received"
+  }
+];
+
+const INITIAL_CUSTOMERS_LIST = [
+  {
+    id: "CL-9021",
+    name: "Rajesh Jha",
+    email: "rajesh.jha@example.com",
+    phone: "+91 98765 43210",
+    location: "Bengaluru, Karnataka",
+    totalPurchases: "₹1,42,500",
+    orders: 24,
+    outstanding: "₹0",
+    tier: "Platinum",
+    points: 240
+  },
+  {
+    id: "CL-8562",
+    name: "Ananya Kapoor",
+    email: "ananya.kapoor@example.com",
+    phone: "+91 88822 11223",
+    location: "Bengaluru, Karnataka",
+    totalPurchases: "₹84,200",
+    orders: 12,
+    outstanding: "₹0",
+    tier: "Gold",
+    points: 150
+  },
+  {
+    id: "CL-4102",
+    name: "Mohammed Sahil",
+    email: "m.sahil@example.com",
+    phone: "+91 70011 22334",
+    location: "Bengaluru, Karnataka",
+    totalPurchases: "₹22,150",
+    orders: 4,
+    outstanding: "₹1,500",
+    tier: "Regular",
+    points: 60
+  }
+];
+
+const INITIAL_STAFF_LIST = [
+  { id: 1, name: "Rajesh Kumar", email: "rajesh.k@krishnastore.in", role: "Store Manager", status: "Active", lastLogin: "Today, 09:14 AM" },
+  { id: 2, name: "Priya Iyer", email: "priya.i@krishnastore.in", role: "Cashier", status: "Active", lastLogin: "Yesterday, 07:45 PM" },
+  { id: 3, name: "Amit Singh", email: "amit.s@krishnastore.in", role: "Inventory Clerk", status: "Inactive", lastLogin: "3 days ago" },
+  { id: 4, name: "Sanya Malhotra", email: "sanya.m@krishnastore.in", role: "Cashier", status: "Active", lastLogin: "Today, 08:30 AM" }
+];
 
 const StoreContext = createContext(null);
 
@@ -205,7 +285,16 @@ export function StoreProvider({ children }) {
     try {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
-        return JSON.parse(saved);
+        const parsed = JSON.parse(saved);
+        return {
+          products: parsed.products || INITIAL_PRODUCTS,
+          sales: parsed.sales || INITIAL_SALES,
+          orders: parsed.orders || [],
+          customers: parsed.customers && parsed.customers.length > 0 ? parsed.customers : INITIAL_CUSTOMERS_LIST,
+          purchases: parsed.purchases && parsed.purchases.length > 0 ? parsed.purchases : INITIAL_PURCHASES,
+          settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
+          staff: parsed.staff && parsed.staff.length > 0 ? parsed.staff : INITIAL_STAFF_LIST,
+        };
       }
     } catch (e) {
       console.warn("Store database load failed", e);
@@ -233,11 +322,10 @@ export function StoreProvider({ children }) {
           paymentMethod: "upi"
         }
       ],
-      customers: [
-        { id: 1, name: "Rajesh Kumar", phone: "9876543210", visits: 14, spent: 18450, points: 240 },
-        { id: 2, name: "Priya Sharma", phone: "9811223344", visits: 8, spent: 7800, points: 110 },
-        { id: 3, name: "Arvind Kumar", phone: "9939780000", visits: 5, spent: 4200, points: 80 }
-      ]
+      customers: INITIAL_CUSTOMERS_LIST,
+      purchases: INITIAL_PURCHASES,
+      settings: DEFAULT_SETTINGS,
+      staff: INITIAL_STAFF_LIST,
     };
   });
 
@@ -418,6 +506,121 @@ export function StoreProvider({ children }) {
     };
   };
 
+  // Purchase Order & Restock Operations
+  const recordPurchaseOrder = (poData) => {
+    const newPO = {
+      id: poData.id || `PO-${Math.floor(10000 + Math.random() * 90000)}`,
+      date: poData.date || new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" }),
+      supplier: poData.supplier || "Wholesale Distributor",
+      items: poData.items || [],
+      subtotal: poData.subtotal || 0,
+      tax: poData.tax || 0,
+      total: poData.total || 0,
+      status: "Received"
+    };
+
+    setData((prev) => {
+      const updatedProducts = prev.products.map((p) => {
+        const itemInPO = (poData.items || []).find(
+          (it) =>
+            it.id === p.id ||
+            (it.name && p.name && (it.name.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(it.name.toLowerCase())))
+        );
+        if (itemInPO) {
+          const addedQty = Number(itemInPO.qty) || 0;
+          const updatedStock = (p.stock || 0) + addedQty;
+          return {
+            ...p,
+            stock: updatedStock,
+            badge: updatedStock <= (p.lowStockThreshold || 10) ? "LOW STOCK" : (p.badge === "LOW STOCK" || p.badge === "OUT OF STOCK" ? "FRESH" : p.badge)
+          };
+        }
+        return p;
+      });
+
+      return {
+        ...prev,
+        purchases: [newPO, ...(prev.purchases || [])],
+        products: updatedProducts
+      };
+    });
+
+    return newPO;
+  };
+
+  // Customer Management
+  const addCustomer = (customerData) => {
+    const newCustomer = {
+      id: customerData.id || `CL-${Math.floor(1000 + Math.random() * 9000)}`,
+      name: customerData.name.trim(),
+      email: customerData.email ? customerData.email.trim() : `${customerData.name.toLowerCase().replace(/[^a-z0-9]/g, "")}@example.com`,
+      phone: customerData.phone ? customerData.phone.trim() : "+91 98765 00000",
+      location: customerData.location ? customerData.location.trim() : "Bengaluru, Karnataka",
+      totalPurchases: customerData.totalPurchases || "₹0",
+      orders: Number(customerData.orders) || 0,
+      outstanding: customerData.outstanding || "₹0",
+      tier: customerData.tier || "Regular",
+      points: Number(customerData.points) || 50
+    };
+
+    setData((prev) => {
+      const existingIdx = (prev.customers || []).findIndex((c) => c.phone === newCustomer.phone && newCustomer.phone !== "N/A");
+      if (existingIdx !== -1) {
+        const updated = [...prev.customers];
+        updated[existingIdx] = { ...updated[existingIdx], ...newCustomer, id: updated[existingIdx].id };
+        return { ...prev, customers: updated };
+      }
+      return { ...prev, customers: [newCustomer, ...(prev.customers || [])] };
+    });
+
+    return newCustomer;
+  };
+
+  // Store Profile Settings
+  const updateSettings = (newSettings) => {
+    setData((prev) => ({
+      ...prev,
+      settings: { ...(prev.settings || DEFAULT_SETTINGS), ...newSettings }
+    }));
+  };
+
+  // Staff Management
+  const addStaff = (staffMember) => {
+    const newStaff = {
+      id: Date.now(),
+      name: staffMember.name.trim(),
+      email: staffMember.email.trim(),
+      role: staffMember.role || "Cashier",
+      status: "Active",
+      lastLogin: "Just now"
+    };
+    setData((prev) => ({
+      ...prev,
+      staff: [newStaff, ...(prev.staff || [])]
+    }));
+    return newStaff;
+  };
+
+  const updateStaff = (id, updatedFields) => {
+    setData((prev) => ({
+      ...prev,
+      staff: (prev.staff || []).map((s) => s.id === id || s.email === id ? { ...s, ...updatedFields } : s)
+    }));
+  };
+
+  const toggleStaffStatus = (identifier) => {
+    setData((prev) => ({
+      ...prev,
+      staff: (prev.staff || []).map((s) => {
+        if (s.id === identifier || s.email === identifier) {
+          const nextStatus = s.status === "Active" ? "Inactive" : "Active";
+          return { ...s, status: nextStatus };
+        }
+        return s;
+      })
+    }));
+  };
+
   // Computed Live Store KPIs & Analytics
   const storeMetrics = useMemo(() => {
     const totalProducts = data.products.length;
@@ -427,6 +630,8 @@ export function StoreProvider({ children }) {
     const posSalesTotal = data.sales.reduce((sum, s) => sum + (s.grandTotal || 0), 0);
     const onlineOrdersTotal = data.orders.reduce((sum, o) => sum + (o.total || 0), 0);
     const totalRevenue = posSalesTotal + onlineOrdersTotal;
+    const totalExpenses = (data.purchases || []).reduce((sum, p) => sum + (p.total || 0), 0);
+    const netProfit = Math.max(0, totalRevenue - totalExpenses);
 
     return {
       totalProducts,
@@ -435,7 +640,9 @@ export function StoreProvider({ children }) {
       lowStockList: lowStockItems,
       totalSalesCount: data.sales.length + data.orders.length,
       totalRevenue,
-      todaySales: posSalesTotal > 0 ? posSalesTotal : 12450 // fallback demo seed
+      todaySales: posSalesTotal > 0 ? posSalesTotal : 12450,
+      totalExpenses,
+      netProfit,
     };
   }, [data]);
 
@@ -453,7 +660,7 @@ export function StoreProvider({ children }) {
 
   const importBackupJSON = (jsonString) => {
     try {
-      const parsed = JSON.parse(jsonString);
+      const parsed = typeof jsonString === "string" ? JSON.parse(jsonString) : jsonString;
       if (parsed.products && Array.isArray(parsed.products)) {
         setData(parsed);
         return { success: true, message: "Database restored successfully!" };
@@ -469,7 +676,10 @@ export function StoreProvider({ children }) {
       products: INITIAL_PRODUCTS,
       sales: INITIAL_SALES,
       orders: [],
-      customers: []
+      customers: INITIAL_CUSTOMERS_LIST,
+      purchases: INITIAL_PURCHASES,
+      settings: DEFAULT_SETTINGS,
+      staff: INITIAL_STAFF_LIST,
     });
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -479,12 +689,21 @@ export function StoreProvider({ children }) {
     sales: data.sales,
     orders: data.orders,
     customers: data.customers,
+    purchases: data.purchases || [],
+    settings: data.settings || DEFAULT_SETTINGS,
+    staff: data.staff || [],
     addProduct,
     updateProduct,
     deleteProduct,
     recordPosSale,
     recordCustomerOrder,
     updateOrderStatus,
+    recordPurchaseOrder,
+    addCustomer,
+    updateSettings,
+    addStaff,
+    updateStaff,
+    toggleStaffStatus,
     applyPromoCode,
     promoCodes: PROMO_CODES,
     storeMetrics,

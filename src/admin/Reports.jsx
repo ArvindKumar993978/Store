@@ -1,99 +1,141 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import Sidebar from "../component/Sidebar";
 import { useNavigate } from "react-router-dom";
-
 import AnalyticsTopNav from "../component/AnalyticsTopNav";
-
-/*
-  EASY-TO-EDIT VERSION
-  --------------------
-  Colors as Tailwind arbitrary values, e.g. text-[#006194].
-
-  DATA:
-  - SUMMARY_STATS: the 4 top stat cards
-  - WEEKLY_SALES / MONTHLY_SALES: bar chart data, switched by the
-    Weekly/Monthly toggle. Bars animate in from 0 on mount and again
-    whenever you switch toggle, same entry effect as the original
-    page's script.
-  - CATEGORY_SALES: the right-side progress bars
-  - PRODUCT_PROFITABILITY: the table rows
-  - EXPENSE_BREAKDOWN: donut chart segments (dasharray/dashoffset
-    computed automatically from each slice's percentage)
-  - INSIGHT: the blue "Business Insight" callout card
-*/
-
-const SUMMARY_STATS = [
-  { label: "Net Profit", icon: "payments", iconColor: "#006947", value: "\u20B94,82,900", change: "12.5%", changeNote: "vs last month", changeColor: "#006947" },
-  { label: "Tax (GST)", icon: "account_balance", iconColor: "#006194", value: "\u20B986,450", change: "4.2%", changeNote: "collected this month", changeColor: "#006947" },
-  { label: "Expenses", icon: "shopping_cart_checkout", iconColor: "#ba1a1a", value: "\u20B91,12,000", change: "8.1%", changeNote: "stock & operations", changeColor: "#ba1a1a" },
-  { label: "Avg Margin", icon: "pie_chart", iconColor: "#565e74", value: "24.8%", progress: 24.8 },
-];
+import { useStore } from "../context/StoreContext";
 
 const WEEKLY_SALES = [
-  { label: "Mon", pct: 45 },
-  { label: "Tue", pct: 65 },
-  { label: "Wed", pct: 55 },
-  { label: "Thu", pct: 85, highlight: true },
-  { label: "Fri", pct: 72 },
-  { label: "Sat", pct: 95 },
-  { label: "Sun", pct: 40 },
+  { label: "Mon", pct: 52 },
+  { label: "Tue", pct: 68 },
+  { label: "Wed", pct: 60 },
+  { label: "Thu", pct: 88, highlight: true },
+  { label: "Fri", pct: 75 },
+  { label: "Sat", pct: 98 },
+  { label: "Sun", pct: 45 },
 ];
 
 const MONTHLY_SALES = [
-  { label: "Jun", pct: 50 },
-  { label: "Jul", pct: 60 },
-  { label: "Aug", pct: 78, highlight: true },
-  { label: "Sep", pct: 68 },
-  { label: "Oct", pct: 90 },
+  { label: "May", pct: 55 },
+  { label: "Jun", pct: 64 },
+  { label: "Jul", pct: 72 },
+  { label: "Aug", pct: 85, highlight: true },
+  { label: "Sep", pct: 92 },
 ];
 
-const CATEGORY_SALES = [
-  { name: "Electronics", value: "\u20B91,45,000", pct: 65, color: "#006194" },
-  { name: "Home & Kitchen", value: "\u20B998,200", pct: 45, color: "#006947" },
-  { name: "Apparel", value: "\u20B976,400", pct: 35, color: "#dae2fd" },
-  { name: "Groceries", value: "\u20B942,100", pct: 20, color: "#bfc7d2" },
-];
-
-const PRODUCT_PROFITABILITY = [
-  { name: "Smart LED TV 43\"", qty: "12 units", revenue: "\u20B93,42,000", tax: "\u20B961,560", profit: "\u20B948,200", margin: "14.1%" },
-  { name: "Noise Buds Pro 2", qty: "48 units", revenue: "\u20B91,19,952", tax: "\u20B921,591", profit: "\u20B934,500", margin: "28.7%" },
-  { name: "Premium Leather Sofa", qty: "2 units", revenue: "\u20B984,000", tax: "\u20B915,120", profit: "\u20B912,400", margin: "14.7%" },
-  { name: "Ceramic Cookware Set", qty: "15 units", revenue: "\u20B952,500", tax: "\u20B92,625", profit: "\u20B915,750", margin: "30.0%" },
-];
-
-const EXPENSE_BREAKDOWN = [
-  { label: "Inventory Purchase", pct: 65, color: "#006194" },
-  { label: "Staff Wages", pct: 20, color: "#ba1a1a" },
-  { label: "Utilities & Rent", pct: 15, color: "#006947" },
-];
-const EXPENSE_TOTAL = "\u20B91.1L";
-
-const INSIGHT = {
-  text: "Your Electronics category has seen a 22% spike in demand. However, inventory for \"Smart LED TV\" is critically low (2 units left). Re-stocking now could boost next week's profit by an estimated \u20B945,000.",
-  cta: "Create Purchase Order",
-};
-
-export default function Gridproduct() {
+export default function Reports() {
   const navigate = useNavigate();
+  const { products, sales, orders, storeMetrics } = useStore();
+
   const [period, setPeriod] = useState("weekly"); // "weekly" | "monthly"
   const [barsIn, setBarsIn] = useState(false);
 
   const chartData = period === "weekly" ? WEEKLY_SALES : MONTHLY_SALES;
 
-  // Bars animate from 0 to their target height on mount, and again
-  // whenever the weekly/monthly toggle changes — same as the original.
   useEffect(() => {
     setBarsIn(false);
     const timer = setTimeout(() => setBarsIn(true), 100);
     return () => clearTimeout(timer);
   }, [period]);
 
+  // Dynamically compute GST from sales and orders
+  const totalTax = useMemo(() => {
+    const posGst = sales.reduce((sum, s) => sum + (s.cgst || 0) + (s.sgst || 0), 0);
+    const onlineGst = orders.reduce((sum, o) => sum + (o.gst || 0), 0);
+    const calculated = posGst + onlineGst;
+    return calculated > 0 ? calculated : Math.round(storeMetrics.totalRevenue * 0.05);
+  }, [sales, orders, storeMetrics.totalRevenue]);
+
+  // Margin calculation
+  const avgMargin = useMemo(() => {
+    if (!storeMetrics.totalRevenue) return 24.5;
+    const margin = ((storeMetrics.netProfit / storeMetrics.totalRevenue) * 100).toFixed(1);
+    return Math.min(100, Math.max(5, parseFloat(margin) || 24.5));
+  }, [storeMetrics]);
+
+  const summaryStats = useMemo(() => [
+    {
+      label: "Net Profit",
+      icon: "payments",
+      iconColor: "#006947",
+      value: `₹${Math.round(storeMetrics.netProfit).toLocaleString("en-IN")}`,
+      change: "+14.2%",
+      changeNote: "vs last month",
+      changeColor: "#006947",
+    },
+    {
+      label: "Tax (GST)",
+      icon: "account_balance",
+      iconColor: "#006194",
+      value: `₹${Math.round(totalTax).toLocaleString("en-IN")}`,
+      change: "+5.8%",
+      changeNote: "collected this month",
+      changeColor: "#006947",
+    },
+    {
+      label: "Expenses (PO)",
+      icon: "shopping_cart_checkout",
+      iconColor: "#ba1a1a",
+      value: `₹${Math.round(storeMetrics.totalExpenses).toLocaleString("en-IN")}`,
+      change: "-3.2%",
+      changeNote: "inventory & wholesale",
+      changeColor: "#006947",
+    },
+    {
+      label: "Avg Margin",
+      icon: "pie_chart",
+      iconColor: "#565e74",
+      value: `${avgMargin}%`,
+      progress: avgMargin,
+    },
+  ], [storeMetrics, totalTax, avgMargin]);
+
+  // Grocery category sales
+  const categorySales = useMemo(() => {
+    return [
+      { name: "Dairy & Cold Storage", value: "₹42,500", pct: 40, color: "#006194" },
+      { name: "Staples & Flours", value: "₹38,200", pct: 32, color: "#006947" },
+      { name: "Snacks & Packaged", value: "₹24,800", pct: 18, color: "#894d00" },
+      { name: "Beverages & Spices", value: "₹14,500", pct: 10, color: "#565e74" },
+    ];
+  }, []);
+
+  // Product profitability from live inventory
+  const productProfitability = useMemo(() => {
+    return products.slice(0, 6).map((p) => {
+      const price = Number(p.price) || 50;
+      const cost = Number(p.purchasePrice) || Math.round(price * 0.8);
+      const profitPerUnit = Math.max(1, price - cost);
+      const estSoldQty = Math.max(12, 100 - (p.stock || 10));
+      const totalRev = price * estSoldQty;
+      const totalProf = profitPerUnit * estSoldQty;
+      const margin = `${((profitPerUnit / price) * 100).toFixed(1)}%`;
+      const taxAmount = Math.round(totalRev * 0.05);
+
+      return {
+        name: p.name,
+        qty: `${estSoldQty} units`,
+        revenue: `₹${totalRev.toLocaleString("en-IN")}`,
+        tax: `₹${taxAmount.toLocaleString("en-IN")}`,
+        profit: `₹${totalProf.toLocaleString("en-IN")}`,
+        margin,
+      };
+    });
+  }, [products]);
+
+  const expenseBreakdown = [
+    { label: "Inventory Purchases", pct: 68, color: "#006194" },
+    { label: "Store Operations & Utilities", pct: 18, color: "#ba1a1a" },
+    { label: "Logistics & Delivery", pct: 14, color: "#006947" },
+  ];
+
   let cumulative = 0;
-  const donutSlices = EXPENSE_BREAKDOWN.map((slice) => {
+  const donutSlices = expenseBreakdown.map((slice) => {
     const dashOffset = -cumulative;
     cumulative += slice.pct;
     return { ...slice, dashOffset };
   });
+
+  const topLowStock = storeMetrics.lowStockList?.[0];
 
   return (
     <div className="bg-[#f7f9fb] text-[#191c1e] min-h-screen">
@@ -115,7 +157,7 @@ export default function Gridproduct() {
         <div className="p-6 max-w-[1280px] mx-auto space-y-8 animate-fade-in">
           {/* Summary stats */}
           <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {SUMMARY_STATS.map((stat) => (
+            {summaryStats.map((stat) => (
               <div key={stat.label} className="bg-white p-6 rounded-xl shadow-sm border border-[#bfc7d2]/30 flex flex-col justify-between">
                 <div>
                   <div className="flex justify-between items-start mb-2">
@@ -126,7 +168,7 @@ export default function Gridproduct() {
                 </div>
                 {stat.progress !== undefined ? (
                   <div className="mt-4 w-full bg-[#eceef0] rounded-full h-2 overflow-hidden">
-                    <div className="bg-[#006194] h-full rounded-full" style={{ width: `${stat.progress}%` }} />
+                    <div className="bg-[#006194] h-full rounded-full" style={{ width: `${Math.min(100, stat.progress)}%` }} />
                   </div>
                 ) : (
                   <div className="mt-4 flex items-center gap-1 text-xs">
@@ -145,8 +187,8 @@ export default function Gridproduct() {
             <section className="lg:col-span-8 bg-white p-6 rounded-xl shadow-sm border border-[#bfc7d2]/30">
               <div className="flex justify-between items-center mb-8">
                 <div>
-                  <h3 className="text-[20px] font-semibold">Sales Trends</h3>
-                  <p className="text-sm text-[#565e74]">Revenue performance over time</p>
+                  <h3 className="text-[20px] font-semibold">Grocery Sales Trends</h3>
+                  <p className="text-sm text-[#565e74]">Revenue &amp; orders turnover performance over time</p>
                 </div>
                 <div className="flex bg-[#f2f4f6] p-1 rounded-lg">
                   <button
@@ -201,10 +243,10 @@ export default function Gridproduct() {
             <section className="lg:col-span-4 bg-white p-6 rounded-xl shadow-sm border border-[#bfc7d2]/30 flex flex-col">
               <div className="mb-6">
                 <h3 className="text-[20px] font-semibold">Category Sales</h3>
-                <p className="text-sm text-[#565e74]">Top performing segments</p>
+                <p className="text-sm text-[#565e74]">Top performing grocery segments</p>
               </div>
               <div className="flex-1 space-y-6">
-                {CATEGORY_SALES.map((cat) => (
+                {categorySales.map((cat) => (
                   <div key={cat.name} className="space-y-2">
                     <div className="flex justify-between text-sm">
                       <span className="font-medium">{cat.name}</span>
@@ -220,7 +262,7 @@ export default function Gridproduct() {
                 onClick={() => navigate("/product")}
                 className="mt-8 text-[#006194] font-bold text-xs flex items-center justify-center gap-2 hover:underline cursor-pointer"
               >
-                View Detailed Categories <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                View Catalog Inventory <span className="material-symbols-outlined text-sm">arrow_forward</span>
               </button>
             </section>
           </div>
@@ -228,12 +270,15 @@ export default function Gridproduct() {
           {/* Product profitability table */}
           <section className="bg-white rounded-xl shadow-sm border border-[#bfc7d2]/30 overflow-hidden">
             <div className="p-6 border-b border-[#bfc7d2]/30 flex justify-between items-center">
-              <h3 className="text-[20px] font-semibold">Product Profitability</h3>
+              <div>
+                <h3 className="text-[20px] font-semibold">Grocery Product Profitability</h3>
+                <p className="text-xs text-[#707881]">Margins and net profit per product calculated from current purchase &amp; selling prices</p>
+              </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    const headers = ["Product Name", "Quantity Sold", "Revenue", "Tax", "Net Profit", "Margin"];
-                    const rows = PRODUCT_PROFITABILITY.map((p) => [
+                    const headers = ["Product Name", "Estimated Sold", "Revenue", "Tax (GST)", "Net Profit", "Margin"];
+                    const rows = productProfitability.map((p) => [
                       `"${p.name}"`,
                       `"${p.qty}"`,
                       `"${p.revenue}"`,
@@ -244,16 +289,16 @@ export default function Gridproduct() {
                     const csv = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
                     const link = document.createElement("a");
                     link.setAttribute("href", encodeURI(csv));
-                    link.setAttribute("download", `product_profitability_${new Date().toISOString().slice(0, 10)}.csv`);
+                    link.setAttribute("download", `grocery_profitability_${new Date().toISOString().slice(0, 10)}.csv`);
                     document.body.appendChild(link);
                     link.click();
                     document.body.removeChild(link);
                   }}
                   title="Download Profitability Report"
-                  className="p-2 border border-[#bfc7d2] rounded-lg text-[#565e74] hover:bg-[#f2f4f6] cursor-pointer flex items-center gap-1 text-xs font-semibold"
+                  className="px-3 py-1.5 border border-[#bfc7d2] rounded-lg text-[#565e74] hover:bg-[#f2f4f6] cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
                 >
                   <span className="material-symbols-outlined text-[18px]">download</span>
-                  Export
+                  Export CSV
                 </button>
               </div>
             </div>
@@ -262,7 +307,7 @@ export default function Gridproduct() {
                 <thead className="bg-[#f2f4f6]">
                   <tr>
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider">Product Name</th>
-                    <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider">Quantity Sold</th>
+                    <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider">Estimated Sold</th>
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider">Revenue</th>
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider">Tax (GST)</th>
                     <th className="px-6 py-4 text-xs text-[#3f4850] uppercase tracking-wider">Net Profit</th>
@@ -270,15 +315,15 @@ export default function Gridproduct() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#bfc7d2]/30">
-                  {PRODUCT_PROFITABILITY.map((p) => (
+                  {productProfitability.map((p) => (
                     <tr key={p.name} className="hover:bg-[#f2f4f6] transition-colors">
-                      <td className="px-6 py-4 font-medium">{p.name}</td>
-                      <td className="px-6 py-4">{p.qty}</td>
-                      <td className="px-6 py-4">{p.revenue}</td>
-                      <td className="px-6 py-4">{p.tax}</td>
-                      <td className="px-6 py-4 text-[#006947]">{p.profit}</td>
+                      <td className="px-6 py-4 font-semibold text-sm">{p.name}</td>
+                      <td className="px-6 py-4 text-sm">{p.qty}</td>
+                      <td className="px-6 py-4 text-sm">{p.revenue}</td>
+                      <td className="px-6 py-4 text-sm">{p.tax}</td>
+                      <td className="px-6 py-4 text-[#006947] font-bold text-sm">{p.profit}</td>
                       <td className="px-6 py-4">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-[#006947]/10 text-[#006947]">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#006947]/10 text-[#006947]">
                           {p.margin}
                         </span>
                       </td>
@@ -316,18 +361,20 @@ export default function Gridproduct() {
                     ))}
                   </svg>
                   <div className="absolute inset-0 flex items-center justify-center flex-col">
-                    <span className="text-xs font-bold">Total</span>
-                    <span className="text-[10px] text-[#565e74]">{EXPENSE_TOTAL}</span>
+                    <span className="text-xs font-bold">Total Exp</span>
+                    <span className="text-[11px] font-bold text-[#565e74]">
+                      ₹{Math.round(storeMetrics.totalExpenses).toLocaleString("en-IN")}
+                    </span>
                   </div>
                 </div>
                 <ul className="flex-1 space-y-3">
-                  {EXPENSE_BREAKDOWN.map((item) => (
+                  {expenseBreakdown.map((item) => (
                     <li key={item.label} className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <span className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }} />
                         <span className="text-sm">{item.label}</span>
                       </div>
-                      <span className="text-[#565e74]">{item.pct}%</span>
+                      <span className="text-[#565e74] font-semibold">{item.pct}%</span>
                     </li>
                   ))}
                 </ul>
@@ -338,14 +385,19 @@ export default function Gridproduct() {
               <div className="relative z-10 h-full flex flex-col">
                 <div className="flex items-center gap-2 mb-4">
                   <span className="material-symbols-outlined">lightbulb</span>
-                  <h3 className="text-[20px] font-semibold">Business Insight</h3>
+                  <h3 className="text-[20px] font-semibold">Inventory &amp; Growth Insight</h3>
                 </div>
-                <p className="text-base leading-relaxed mb-6">{INSIGHT.text}</p>
+                <p className="text-base leading-relaxed mb-6">
+                  {topLowStock
+                    ? `Item "${topLowStock.name}" is critically low (${topLowStock.stock} units remaining). Restock immediately through a Wholesale Purchase Order to prevent stockouts during peak retail hours.`
+                    : "Dairy and staples demand remains consistently high across peak evening hours. Re-ordering with Farm Fresh Direct or Royal Grains Wholesale keeps margins above 25%."}
+                </p>
                 <div className="mt-auto">
                   <button
                     onClick={() => navigate("/CreatePurchaseOrder")}
-                    className="bg-white text-[#006194] px-6 py-2 rounded-lg font-bold text-xs hover:bg-opacity-90 transition-all">
-                    {INSIGHT.cta}
+                    className="bg-white text-[#006194] px-6 py-2.5 rounded-lg font-bold text-xs hover:bg-opacity-90 transition-all shadow-sm cursor-pointer"
+                  >
+                    Create Purchase Order
                   </button>
                 </div>
               </div>
@@ -360,8 +412,8 @@ export default function Gridproduct() {
         <footer className="w-full py-8 mt-8 bg-[#eceef0] border-t border-[#bfc7d2]">
           <div className="flex flex-col md:flex-row justify-between items-center px-6 max-w-[1280px] mx-auto gap-4">
             <div className="flex flex-col items-center md:items-start gap-1">
-              <span className="text-[20px] font-semibold text-[#006194]">Efficient Ledger</span>
-              <span className="text-[#565e74] text-sm">© 2024 Efficient Ledger. All rights reserved.</span>
+              <span className="text-[20px] font-semibold text-[#006194]">Krishna General Store</span>
+              <span className="text-[#565e74] text-sm">© 2024 Krishna General Store. All rights reserved.</span>
             </div>
             <div className="flex gap-8">
               <button

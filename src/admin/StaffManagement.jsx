@@ -1,67 +1,14 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
-
-const INITIAL_STAFF = [
-  {
-    initials: "RK",
-    initialsBg: "#007bb9",
-    initialsText: "#006194",
-    name: "Rajesh Kumar",
-    email: "rajesh.k@efficientledger.com",
-    role: "Store Manager",
-    roleBg: "#007bb9",
-    roleText: "#006194",
-    status: "Active",
-    statusDot: "#00855b",
-    lastLogin: "Today, 09:14 AM",
-  },
-  {
-    initials: "PI",
-    initialsBg: "#565e74",
-    initialsText: "#565e74",
-    name: "Priya Iyer",
-    email: "priya.iyer@efficientledger.com",
-    role: "Cashier",
-    roleBg: "#565e74",
-    roleText: "#565e74",
-    status: "Active",
-    statusDot: "#00855b",
-    lastLogin: "Yesterday, 07:45 PM",
-  },
-  {
-    initials: "AS",
-    initialsBg: "#00855b",
-    initialsText: "#006947",
-    name: "Amit Singh",
-    email: "amit.s@efficientledger.com",
-    role: "Inventory Clerk",
-    roleBg: "#00855b",
-    roleText: "#006947",
-    status: "Inactive",
-    statusDot: "#bfc7d2",
-    lastLogin: "3 days ago",
-  },
-  {
-    initials: "SM",
-    initialsBg: "#565e74",
-    initialsText: "#565e74",
-    name: "Sanya Malhotra",
-    email: "sanya.m@efficientledger.com",
-    role: "Cashier",
-    roleBg: "#565e74",
-    roleText: "#565e74",
-    status: "Active",
-    statusDot: "#00855b",
-    lastLogin: "Today, 08:30 AM",
-  },
-];
+import { useStore } from "../context/StoreContext";
 
 const ROLES = ["Store Manager", "Cashier", "Inventory Clerk"];
 
 export default function StaffManagement() {
   const navigate = useNavigate();
-  const [staff, setStaff] = useState(INITIAL_STAFF);
+  const { staff, addStaff, updateStaff, toggleStaffStatus } = useStore();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedRole, setSelectedRole] = useState("All");
 
@@ -74,82 +21,76 @@ export default function StaffManagement() {
     role: "Cashier",
   });
 
-  // Filtered staff
+  // Filtered staff with dynamic visual styling
   const filteredStaff = useMemo(() => {
-    return staff.filter((s) => {
-      const matchRole = selectedRole === "All" || s.role.toLowerCase() === selectedRole.toLowerCase();
+    return (staff || []).map((s) => {
+      const name = s.name || "Staff Member";
+      const initials =
+        s.initials ||
+        name
+          .split(" ")
+          .map((n) => n[0])
+          .join("")
+          .slice(0, 2)
+          .toUpperCase();
+
+      const isManager = s.role === "Store Manager";
+      const isClerk = s.role === "Inventory Clerk";
+
+      const initialsBg = isManager ? "#007bb9" : isClerk ? "#00855b" : "#565e74";
+      const initialsText = isManager ? "#006194" : isClerk ? "#006947" : "#565e74";
+      const roleBg = isManager ? "#007bb9" : isClerk ? "#00855b" : "#565e74";
+      const roleText = isManager ? "#006194" : isClerk ? "#006947" : "#565e74";
+      const statusDot = s.status === "Active" ? "#00855b" : "#bfc7d2";
+
+      return {
+        ...s,
+        initials,
+        initialsBg,
+        initialsText,
+        roleBg,
+        roleText,
+        statusDot,
+        lastLogin: s.lastLogin || "Today, 09:00 AM",
+      };
+    }).filter((s) => {
+      const matchRole = selectedRole === "All" || (s.role && s.role.toLowerCase() === selectedRole.toLowerCase());
       const term = searchQuery.toLowerCase().trim();
       const matchSearch =
         !term ||
-        s.name.toLowerCase().includes(term) ||
-        s.email.toLowerCase().includes(term) ||
-        s.role.toLowerCase().includes(term);
+        (s.name && s.name.toLowerCase().includes(term)) ||
+        (s.email && s.email.toLowerCase().includes(term)) ||
+        (s.role && s.role.toLowerCase().includes(term));
       return matchRole && matchSearch;
     });
   }, [staff, selectedRole, searchQuery]);
 
-  const toggleStatus = (email) => {
-    setStaff((prev) =>
-      prev.map((s) => {
-        if (s.email === email) {
-          const newStatus = s.status === "Active" ? "Inactive" : "Active";
-          return {
-            ...s,
-            status: newStatus,
-            statusDot: newStatus === "Active" ? "#00855b" : "#bfc7d2",
-          };
-        }
-        return s;
-      })
-    );
+  const handleToggleStatus = (identifier) => {
+    toggleStaffStatus(identifier);
   };
 
-  const handleAddStaff = (e) => {
+  const handleAddStaffSubmit = (e) => {
     e.preventDefault();
     if (!newStaffForm.name.trim() || !newStaffForm.email.trim()) return;
 
-    const initials = newStaffForm.name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .slice(0, 2)
-      .toUpperCase();
-
-    const newMember = {
-      initials,
-      initialsBg: "#007bb9",
-      initialsText: "#006194",
+    addStaff({
       name: newStaffForm.name.trim(),
       email: newStaffForm.email.trim(),
       role: newStaffForm.role,
-      roleBg: newStaffForm.role === "Store Manager" ? "#007bb9" : newStaffForm.role === "Cashier" ? "#565e74" : "#00855b",
-      roleText: newStaffForm.role === "Store Manager" ? "#006194" : newStaffForm.role === "Cashier" ? "#565e74" : "#006947",
-      status: "Active",
-      statusDot: "#00855b",
-      lastLogin: "Never",
-    };
+    });
 
-    setStaff((prev) => [newMember, ...prev]);
     setShowAddModal(false);
     setNewStaffForm({ name: "", email: "", role: "Cashier" });
   };
 
-  const handleUpdateRole = (e) => {
+  const handleUpdateRoleSubmit = (e) => {
     e.preventDefault();
     if (!editingStaff) return;
 
-    setStaff((prev) =>
-      prev.map((s) =>
-        s.email === editingStaff.email
-          ? {
-              ...s,
-              role: editingStaff.role,
-              roleBg: editingStaff.role === "Store Manager" ? "#007bb9" : editingStaff.role === "Cashier" ? "#565e74" : "#00855b",
-              roleText: editingStaff.role === "Store Manager" ? "#006194" : editingStaff.role === "Cashier" ? "#565e74" : "#006947",
-            }
-          : s
-      )
-    );
+    updateStaff(editingStaff.id || editingStaff.email, {
+      role: editingStaff.role,
+    });
+
     setEditingStaff(null);
   };
 
@@ -167,7 +108,7 @@ export default function StaffManagement() {
       [headers.join(","), ...rows.map((r) => r.join(","))].join("\n");
     const link = document.createElement("a");
     link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `staff_directory_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `krishna_staff_directory_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -217,7 +158,7 @@ export default function StaffManagement() {
             >
               <div className="text-right hidden sm:block">
                 <p className="text-[12px] tracking-[0.05em] text-[#191c1e] font-semibold leading-none">
-                  Anand Verma
+                  Krishna Store Admin
                 </p>
                 <p className="text-[10px] text-[#3f4850] uppercase font-semibold">Store Owner</p>
               </div>
@@ -239,7 +180,7 @@ export default function StaffManagement() {
                 Staff Directory
               </h2>
               <p className="text-[14px] leading-[20px] text-[#3f4850]">
-                Manage your team, roles, and system access levels from a central dashboard.
+                Manage store staff, role permissions, and cashier authorization.
               </p>
             </div>
             <button
@@ -267,20 +208,20 @@ export default function StaffManagement() {
                 Store Manager
               </h3>
               <p className="text-[14px] leading-[20px] text-[#3f4850] mb-4">
-                Complete control over inventory, billing, and staff records.
+                Complete control over inventory, wholesale orders, billing, and staff.
               </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[#006194]">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                  <span className="text-[12px] font-medium">Inventory &amp; Sales</span>
+                  <span className="text-[12px] font-medium">Wholesale POs &amp; Stock</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#006194]">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                  <span className="text-[12px] font-medium">Reporting &amp; Analytics</span>
+                  <span className="text-[12px] font-medium">Financial &amp; GST Reports</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#006194]">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                  <span className="text-[12px] font-medium">Staff Management</span>
+                  <span className="text-[12px] font-medium">Staff &amp; Settings Control</span>
                 </div>
               </div>
             </div>
@@ -299,20 +240,20 @@ export default function StaffManagement() {
                 Cashier
               </h3>
               <p className="text-[14px] leading-[20px] text-[#3f4850] mb-4">
-                Access for processing transactions and returns only.
+                Rapid checkout, invoice printing, and UPI barcode processing.
               </p>
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[#006194]">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                  <span className="text-[12px] font-medium">Point of Sale (POS)</span>
+                  <span className="text-[12px] font-medium">Quick POS Billing</span>
+                </div>
+                <div className="flex items-center gap-2 text-[#006194]">
+                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                  <span className="text-[12px] font-medium">Customer Registration</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#ba1a1a]">
                   <span className="material-symbols-outlined text-sm">cancel</span>
-                  <span className="text-[12px] font-medium">Financial Reports</span>
-                </div>
-                <div className="flex items-center gap-2 text-[#ba1a1a]">
-                  <span className="material-symbols-outlined text-sm">cancel</span>
-                  <span className="text-[12px] font-medium">Inventory Edits</span>
+                  <span className="text-[12px] font-medium">Settings &amp; Wholesale Access</span>
                 </div>
               </div>
             </div>
@@ -336,15 +277,15 @@ export default function StaffManagement() {
               <div className="space-y-2">
                 <div className="flex items-center gap-2 text-[#006194]">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                  <span className="text-[12px] font-medium">Stock Management</span>
+                  <span className="text-[12px] font-medium">Stock Restocking &amp; Alerts</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#006194]">
                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                  <span className="text-[12px] font-medium">Supplier Portal</span>
+                  <span className="text-[12px] font-medium">Supplier &amp; PO Portal</span>
                 </div>
                 <div className="flex items-center gap-2 text-[#ba1a1a]">
                   <span className="material-symbols-outlined text-sm">cancel</span>
-                  <span className="text-[12px] font-medium">Direct Billing</span>
+                  <span className="text-[12px] font-medium">Direct Billing &amp; Sales Edit</span>
                 </div>
               </div>
             </div>
@@ -381,7 +322,7 @@ export default function StaffManagement() {
                   className="flex items-center gap-2 px-3 py-2 border border-[#bfc7d2] rounded-lg text-[#3f4850] text-[12px] tracking-[0.05em] font-semibold hover:bg-[#e6e8ea] cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-lg">download</span>
-                  Export
+                  Export CSV
                 </button>
               </div>
             </div>
@@ -410,7 +351,7 @@ export default function StaffManagement() {
                 <tbody className="divide-y divide-[#bfc7d2]">
                   {filteredStaff.map((row) => (
                     <tr
-                      key={row.email}
+                      key={row.id || row.email}
                       className="hover:bg-[#f2f4f6]/50 transition-colors group"
                     >
                       <td className="px-6 py-4">
@@ -418,7 +359,7 @@ export default function StaffManagement() {
                           <div
                             className="w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm"
                             style={{
-                              backgroundColor: `${row.initialsBg}33`,
+                              backgroundColor: `${row.initialsBg}22`,
                               color: row.initialsText,
                             }}
                           >
@@ -467,7 +408,7 @@ export default function StaffManagement() {
                             <span className="material-symbols-outlined text-lg">edit</span>
                           </button>
                           <button
-                            onClick={() => toggleStatus(row.email)}
+                            onClick={() => handleToggleStatus(row.id || row.email)}
                             className={`p-2 rounded-full transition-all cursor-pointer ${
                               row.status === "Active"
                                 ? "text-[#3f4850] hover:text-[#ba1a1a] hover:bg-[#ffdad6]/40"
@@ -507,11 +448,11 @@ export default function StaffManagement() {
         <footer className="w-full py-4 mt-auto border-t border-[#bfc7d2] bg-white flex flex-col md:flex-row justify-between items-center px-8">
           <div className="flex items-center gap-2 mb-4 md:mb-0">
             <span className="text-[12px] tracking-[0.05em] font-semibold text-[#006194]">
-              Efficient Ledger
+              Krishna General Store
             </span>
             <span className="text-[#3f4850]/30">|</span>
             <p className="text-[12px] text-[#3f4850]">
-              © 2024 Efficient Ledger. All rights reserved.
+              © 2024 Krishna General Store. All rights reserved.
             </p>
           </div>
           <div className="flex gap-6">
@@ -547,7 +488,7 @@ export default function StaffManagement() {
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            <form onSubmit={handleAddStaff} className="space-y-4">
+            <form onSubmit={handleAddStaffSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">Full Name *</label>
                 <input
@@ -564,7 +505,7 @@ export default function StaffManagement() {
                 <input
                   required
                   type="email"
-                  placeholder="ramesh.v@efficientledger.com"
+                  placeholder="ramesh.v@krishnastore.in"
                   value={newStaffForm.email}
                   onChange={(e) => setNewStaffForm({ ...newStaffForm, email: e.target.value })}
                   className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-[#006194]"
@@ -575,7 +516,7 @@ export default function StaffManagement() {
                 <select
                   value={newStaffForm.role}
                   onChange={(e) => setNewStaffForm({ ...newStaffForm, role: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-[#006194]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-[#006194] bg-white cursor-pointer"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>{r}</option>
@@ -585,14 +526,14 @@ export default function StaffManagement() {
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-[#006194] text-white rounded-lg text-sm font-semibold hover:bg-[#007bb9]"
+                  className="flex-1 py-2.5 bg-[#006194] text-white rounded-lg text-sm font-semibold hover:bg-[#007bb9] cursor-pointer"
                 >
                   Create Member
                 </button>
                 <button
                   type="button"
                   onClick={() => setShowAddModal(false)}
-                  className="flex-1 py-2.5 bg-gray-100 text-[#3f4850] rounded-lg text-sm font-semibold hover:bg-gray-200"
+                  className="flex-1 py-2.5 bg-gray-100 text-[#3f4850] rounded-lg text-sm font-semibold hover:bg-gray-200 cursor-pointer"
                 >
                   Cancel
                 </button>
@@ -612,13 +553,13 @@ export default function StaffManagement() {
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
-            <form onSubmit={handleUpdateRole} className="space-y-4">
+            <form onSubmit={handleUpdateRoleSubmit} className="space-y-4">
               <div>
                 <label className="text-xs font-semibold text-[#3f4850] block uppercase mb-1">Select Role</label>
                 <select
                   value={editingStaff.role}
                   onChange={(e) => setEditingStaff({ ...editingStaff, role: e.target.value })}
-                  className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-[#006194]"
+                  className="w-full px-3 py-2 border rounded-lg text-sm outline-none focus:border-[#006194] bg-white cursor-pointer"
                 >
                   {ROLES.map((r) => (
                     <option key={r} value={r}>{r}</option>
@@ -628,14 +569,14 @@ export default function StaffManagement() {
               <div className="flex gap-2 pt-2">
                 <button
                   type="submit"
-                  className="flex-1 py-2.5 bg-[#006194] text-white rounded-lg text-sm font-semibold hover:bg-[#007bb9]"
+                  className="flex-1 py-2.5 bg-[#006194] text-white rounded-lg text-sm font-semibold hover:bg-[#007bb9] cursor-pointer"
                 >
                   Save Changes
                 </button>
                 <button
                   type="button"
                   onClick={() => setEditingStaff(null)}
-                  className="flex-1 py-2.5 bg-gray-100 text-[#3f4850] rounded-lg text-sm font-semibold hover:bg-gray-200"
+                  className="flex-1 py-2.5 bg-gray-100 text-[#3f4850] rounded-lg text-sm font-semibold hover:bg-gray-200 cursor-pointer"
                 >
                   Cancel
                 </button>

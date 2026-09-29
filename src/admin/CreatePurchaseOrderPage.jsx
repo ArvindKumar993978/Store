@@ -1,84 +1,61 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar.jsx";
+import { useStore } from "../context/StoreContext.jsx";
 
-const GST_RATE = 0.18;
-
-const INITIAL_LINE_ITEMS = [
-  {
-    id: 1,
-    name: "Logitech MX Master 3S",
-    sku: "SKU: LOG-MX3-BLK",
-    stockLabel: "Low (3)",
-    stockStyle: { bg: "#ffdad6", text: "#93000a" },
-    unitPrice: 7499.0,
-    qty: 12,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuB6x5s3b_bAYS9srg1WW_osyi4OMAR0bOfiFZ_jBlM0kf_jFmSl5Agu2f2Zy3_iR0zP96k84dgYxvKjixxSO9Sm-gOvOjl-oLRHZ9EKYUaWoS5Na18gh6qdIcVIUin_5yyw2JYffGN5-CcnHN-KXf4fiAypmEq4Ub-nCqeOshqHxBW72fO7-eNd9VJNVVhwZ0cPPYvtgjlX3fluNITwv_OUAPtONZZH1VxaRJlzQmSJq44gBtjn3OFpbJ-dnEu2eCB5VjrK9W5tNe9s",
-  },
-  {
-    id: 2,
-    name: "Keychron K2 Mechanical",
-    sku: "SKU: KEY-K2-RGB",
-    stockLabel: "15",
-    stockStyle: { bg: "#e0e3e5", text: "#3f4850" },
-    unitPrice: 4250.0,
-    qty: 8,
-    image:
-      "https://lh3.googleusercontent.com/aida-public/AB6AXuA8gEXujCqDLVtr5W2V375MhhaIHxK7MjsvDZBzY9TS9OBdILd0KZkizQgUByz7ewjSKLoYFXq2TDafHbap4xny8KDoPf7z_23FnuhY2dAYTXaw3HgoXMfvHh-oGNG98kQzNnv5k6ff9z8HuEScQOAil_noBeCLdtXdlDs8UWF0sLs1Q5eWjWuTS421WPeiQEANeNFHweGyKx7oE2DdYVXLn6Qjg9sEQhDvvjm9j1SlcEJ8D13mDQyoKbHAtgSYmDPV4RzVkjZw_ZA5",
-  },
-];
-
-const AVAILABLE_CATALOG = [
-  {
-    id: 3,
-    name: "Whole Milk - 1L (Bulk Crate)",
-    sku: "SKU: MK-10293",
-    stockLabel: "Low (12)",
-    stockStyle: { bg: "#ffdad6", text: "#93000a" },
-    unitPrice: 40.0,
-    qty: 50,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuCrYvrSJ7OcbW0gUMWUZhjsLn4Pukj0UAun_Q0tyy8ObC0B4wHpGflnCEa4tsSp497gGwtn1sDQeZ-Vw20_QRCWGl5N3f2_otUNzNAa1jJH7GNG9Nt4rqxc8GeqYLQbOvkUSsvqNtNb4L7GXkE9VbD591Dt4h4oqdsaLfVr118UO_UWOfiIn96NFzFsXO8fVFionsDy1gN94cTzEXCZ64xGXyslRYLr7YKdH6Lrctay2TGuf29M6N65JNa1zl0U9Q3QIgunWh3vzzcL",
-  },
-  {
-    id: 4,
-    name: "Honey Loops Cereal 500g",
-    sku: "SKU: SN-44582",
-    stockLabel: "24",
-    stockStyle: { bg: "#e0e3e5", text: "#3f4850" },
-    unitPrice: 150.0,
-    qty: 20,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuD75B0M5a_k3dNhXaVz3cSNSoUgZgmqeaLYFxo_kaDMrvuYRRgsNLsYGny-lQYAUl5J-EWqKJs33b3yKxrU5MOZqiZcHhQmhJtpDjZo87KCl4mzkSQspLPNaC6gL2UwrLDpTph6i6Z4ahPvm7xPKzVS15ScZkuzyci3w_TBdWRNaTmcqE68RV8aY1jDbcW2Y83RuZj_74I5mr1dn3hrqfVSqWbMVUMtN1uyjy3UbCCNW_SaV5FWc5Atti8Wk7dbvtLx54vVku8dE0Ri",
-  },
-  {
-    id: 5,
-    name: "Premium Basmati Rice 25kg",
-    sku: "SKU: ST-11223",
-    stockLabel: "8",
-    stockStyle: { bg: "#ffdad6", text: "#93000a" },
-    unitPrice: 1800.0,
-    qty: 15,
-    image: "https://lh3.googleusercontent.com/aida-public/AB6AXuC1yFWaAXcESGoqnqiUO8q00kspWzvzcj33bcf8VG_VyINE5Guojx3DsxfykrmlLX5CO0JIwe9KgQba-_3rFTfGB08RaWlbYR4Ef6jDsUbMYOHKYPuE-_eoS9ktU3Xw2RgreUYxXuSjElqFWu_ll3NoKUI7KCyBT_KHS7leFlPLDcV-x3iZ5CkADTI67V7sTzxduwHGa-sKCFZmjB0aE4cfcqt0ExBck1AtGjx6W7aICGDnOOKAAc1YKdJ8lFcWfOy5uORKCuf9ChbS",
-  },
-];
+const GST_RATE = 0.05; // 5% GST on grocery bulk restock
 
 const SUPPLIER_OPTIONS = [
   "Select a supplier",
-  "Global Electronics Ltd.",
-  "Standard Stationery Hub",
-  "Prime Textiles Inc.",
-  "Farm Fresh Direct",
+  "Farm Fresh Direct Suppliers",
+  "Amul Dairy Cooperative Ltd.",
+  "Aashirvaad & ITC Wholesale Hub",
+  "Nestle & FMCG Distributors",
+  "Fortune Agro Foods Ltd.",
 ];
 
 export default function CreatePurchaseOrderPage() {
   const navigate = useNavigate();
-  const [items, setItems] = useState(INITIAL_LINE_ITEMS);
-  const [supplier, setSupplier] = useState("Global Electronics Ltd.");
-  const [deliveryDate, setDeliveryDate] = useState("2024-11-15");
+  const { products, recordPurchaseOrder } = useStore();
+
+  // Pre-populate with low stock grocery items or first 2 items
+  const initialItems = useMemo(() => {
+    const lowStock = products.filter((p) => p.stock <= (p.lowStockThreshold || 10));
+    const toPick = lowStock.length > 0 ? lowStock.slice(0, 3) : products.slice(0, 2);
+    return toPick.map((p) => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku || `SKU-${p.id}`,
+      stockLabel: `${p.stock} units left`,
+      stockStyle: p.stock <= 5 ? { bg: "#ffdad6", text: "#93000a" } : { bg: "#e0e3e5", text: "#3f4850" },
+      unitPrice: p.purchasePrice || Math.round(p.price * 0.8),
+      qty: 25,
+      image: p.image,
+    }));
+  }, [products]);
+
+  const [items, setItems] = useState(initialItems);
+  const [supplier, setSupplier] = useState("Farm Fresh Direct Suppliers");
+  const [deliveryDate, setDeliveryDate] = useState(
+    new Date(Date.now() + 86400000 * 3).toISOString().slice(0, 10)
+  );
   const [shippingMethod, setShippingMethod] = useState("standard");
   const [notes, setNotes] = useState("");
   const [showCatalogModal, setShowCatalogModal] = useState(false);
   const [poGenerated, setPoGenerated] = useState(null);
+
+  const availableCatalog = useMemo(() => {
+    return products.map((p) => ({
+      id: p.id,
+      name: p.name,
+      sku: p.sku || `SKU-${p.id}`,
+      stockLabel: `${p.stock} in stock`,
+      stockStyle: p.stock <= (p.lowStockThreshold || 10) ? { bg: "#ffdad6", text: "#93000a" } : { bg: "#e0e3e5", text: "#3f4850" },
+      unitPrice: p.purchasePrice || Math.round(p.price * 0.8),
+      qty: 20,
+      image: p.image,
+    }));
+  }, [products]);
 
   const updateQty = (id, value) => {
     const qty = Math.max(0, Number(value) || 0);
@@ -93,9 +70,9 @@ export default function CreatePurchaseOrderPage() {
     setItems((prev) => {
       const exists = prev.find((i) => i.id === product.id);
       if (exists) {
-        return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + product.qty } : i));
+        return prev.map((i) => (i.id === product.id ? { ...i, qty: i.qty + 10 } : i));
       }
-      return [...prev, { ...product }];
+      return [...prev, { ...product, qty: 20 }];
     });
     setShowCatalogModal(false);
   };
@@ -113,11 +90,31 @@ export default function CreatePurchaseOrderPage() {
       return;
     }
     const poNum = `PO-${Math.floor(10000 + Math.random() * 90000)}`;
+    const poData = {
+      id: poNum,
+      supplier,
+      deliveryDate,
+      items: items.map((it) => ({
+        id: it.id,
+        name: it.name,
+        qty: it.qty,
+        unitPrice: it.unitPrice,
+        price: it.unitPrice,
+      })),
+      subtotal: totals.subtotal,
+      tax: totals.tax,
+      total: totals.total,
+    };
+
+    // Actually restock items in StoreContext and log PO to purchases!
+    recordPurchaseOrder(poData);
+
     setPoGenerated({
       poNum,
       supplier,
       deliveryDate,
       total: totals.total,
+      itemCount: items.reduce((sum, it) => sum + it.qty, 0),
     });
   };
 
@@ -396,7 +393,7 @@ export default function CreatePurchaseOrderPage() {
                     <span className="font-semibold">₹{totals.subtotal.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center text-sm">
-                    <span className="text-[#3f4850]">Tax (GST 18%)</span>
+                    <span className="text-[#3f4850]">Tax (GST 5%)</span>
                     <span className="font-semibold">₹{totals.tax.toFixed(2)}</span>
                   </div>
                   <div className="flex justify-between items-center border-t border-[#bfc7d2] pt-3 mt-1">
@@ -412,19 +409,16 @@ export default function CreatePurchaseOrderPage() {
         {/* Footer */}
         <footer className="mt-8 w-full py-8 border-t border-[#bfc7d2] flex flex-col md:flex-row justify-between items-center text-sm text-[#565e74]">
           <div className="flex flex-col md:flex-row gap-6 items-center">
-            <span className="text-[20px] text-[#006194] font-bold">Efficient Ledger</span>
+            <span className="text-[20px] text-[#006194] font-bold">Krishna Store</span>
             <span className="hidden md:block w-px h-4 bg-[#bfc7d2]" />
-            <p>© 2024 Efficient Ledger. All rights reserved.</p>
+            <p>© 2024 Krishna Store Ecosystem. All rights reserved.</p>
           </div>
           <div className="flex gap-6 mt-4 md:mt-0">
-            <button onClick={() => alert("Privacy Policy: Supplier agreements are confidential.")} className="hover:text-[#006194] cursor-pointer">
-              Privacy Policy
-            </button>
-            <button onClick={() => alert("Terms of Service: Procurement agreements apply.")} className="hover:text-[#006194] cursor-pointer">
-              Terms of Service
+            <button onClick={() => navigate("/help")} className="hover:text-[#006194] cursor-pointer">
+              Procurement Guidelines
             </button>
             <button onClick={() => navigate("/help")} className="hover:text-[#006194] cursor-pointer">
-              Contact Support
+              Supplier Support
             </button>
           </div>
         </footer>
@@ -435,13 +429,13 @@ export default function CreatePurchaseOrderPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
           <div className="bg-white rounded-2xl max-w-lg w-full shadow-2xl p-6 border border-[#bfc7d2] animate-in fade-in zoom-in-95">
             <div className="flex justify-between items-center mb-4 border-b pb-3">
-              <h3 className="font-bold text-lg text-[#191c1e]">Select Product to Restock</h3>
+              <h3 className="font-bold text-lg text-[#191c1e]">Select Grocery Product to Restock</h3>
               <button onClick={() => setShowCatalogModal(false)} className="text-gray-500 hover:text-black">
                 <span className="material-symbols-outlined text-[20px]">close</span>
               </button>
             </div>
             <div className="space-y-3 max-h-[60vh] overflow-y-auto">
-              {AVAILABLE_CATALOG.map((catItem) => (
+              {availableCatalog.map((catItem) => (
                 <div
                   key={catItem.id}
                   className="flex items-center justify-between p-3 border rounded-xl hover:bg-[#f7f9fb] transition-colors"
@@ -450,7 +444,10 @@ export default function CreatePurchaseOrderPage() {
                     <img src={catItem.image} alt={catItem.name} className="w-12 h-12 object-cover rounded-lg" />
                     <div>
                       <h4 className="font-semibold text-sm text-[#191c1e]">{catItem.name}</h4>
-                      <p className="text-xs text-[#707881]">{catItem.sku} • Stock: {catItem.stockLabel}</p>
+                      <p className="text-xs text-[#707881]">
+                        {catItem.sku} • Stock: <span className="font-bold text-slate-800">{catItem.stockLabel}</span>
+                      </p>
+                      <p className="text-xs text-[#006194] font-semibold">Cost: ₹{catItem.unitPrice.toFixed(2)}/unit</p>
                     </div>
                   </div>
                   <button
@@ -474,9 +471,12 @@ export default function CreatePurchaseOrderPage() {
               <span className="material-symbols-outlined text-3xl">check_circle</span>
             </div>
             <h3 className="text-xl font-bold text-[#191c1e] mb-1">Purchase Order Created!</h3>
-            <p className="text-sm font-semibold text-[#006194] mb-3">{poGenerated.poNum}</p>
+            <p className="text-xs font-bold text-emerald-700 bg-emerald-50 px-3 py-1 rounded-full inline-block mb-2">
+              ✓ {poGenerated.itemCount} units restocked into inventory
+            </p>
+            <p className="text-sm font-semibold text-[#006194] mb-2">{poGenerated.poNum}</p>
             <p className="text-xs text-[#707881] mb-6">
-              A purchase order for ₹{poGenerated.total.toFixed(2)} has been issued to {poGenerated.supplier}. Delivery scheduled by {poGenerated.deliveryDate}.
+              A procurement order of ₹{poGenerated.total.toFixed(2)} has been recorded with {poGenerated.supplier}. Delivery expected by {poGenerated.deliveryDate}.
             </p>
             <div className="flex gap-2">
               <button
@@ -486,10 +486,10 @@ export default function CreatePurchaseOrderPage() {
                 Print PO
               </button>
               <button
-                onClick={() => navigate("/sales")}
+                onClick={() => navigate("/product")}
                 className="flex-1 py-2.5 bg-[#006194] hover:bg-[#007bb9] text-white rounded-xl text-xs font-bold"
               >
-                View in Ledger
+                Check Stock in Inventory
               </button>
             </div>
           </div>
