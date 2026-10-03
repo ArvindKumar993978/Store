@@ -281,6 +281,14 @@ export default function CustomerDirectoryPage() {
                 </button>
 
                 <button
+                  onClick={() => navigate("/khata")}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-800 bg-amber-50 border border-amber-200 rounded-lg hover:bg-amber-100 transition-colors cursor-pointer"
+                >
+                  <span className="material-symbols-outlined text-[16px]">menu_book</span>
+                  Khata Book
+                </button>
+
+                <button
                   onClick={() => setShowAddModal(true)}
                   className="flex items-center gap-1.5 px-4 py-1.5 text-xs font-bold text-white bg-[#006194] rounded-lg hover:bg-[#007bb9] transition-all shadow-sm cursor-pointer"
                 >
@@ -353,6 +361,13 @@ export default function CustomerDirectoryPage() {
                               title={`Send Message to ${c.name}`}
                             >
                               <span className="material-symbols-outlined text-[20px]">chat</span>
+                            </button>
+                            <button
+                              onClick={() => navigate("/khata")}
+                              className="p-2 text-amber-700 hover:bg-amber-100 rounded-full transition-all cursor-pointer"
+                              title={`Open Khata Book for ${c.name}`}
+                            >
+                              <span className="material-symbols-outlined text-[20px]">menu_book</span>
                             </button>
                             <button
                               onClick={() =>

@@ -202,6 +202,7 @@ const DEFAULT_SETTINGS = {
   storeName: "Krishna General Store",
   tagline: "Your Trusted Neighborhood Grocery Partner",
   gstin: "29AAAAA0000A1Z5",
+  upiId: "krishnastore@upi",
   address: "Shop No. 12, Main Market, Sector 4, HSR Layout, Bengaluru, Karnataka - 560102",
   phone: "+91 98765 43210",
   email: "support@krishnastore.in",
@@ -241,6 +242,7 @@ const INITIAL_CUSTOMERS_LIST = [
     totalPurchases: "₹1,42,500",
     orders: 24,
     outstanding: "₹0",
+    creditLimit: 10000,
     tier: "Platinum",
     points: 240
   },
@@ -252,7 +254,8 @@ const INITIAL_CUSTOMERS_LIST = [
     location: "Bengaluru, Karnataka",
     totalPurchases: "₹84,200",
     orders: 12,
-    outstanding: "₹0",
+    outstanding: "₹850",
+    creditLimit: 5000,
     tier: "Gold",
     points: 150
   },
@@ -265,8 +268,64 @@ const INITIAL_CUSTOMERS_LIST = [
     totalPurchases: "₹22,150",
     orders: 4,
     outstanding: "₹1,500",
+    creditLimit: 3000,
     tier: "Regular",
     points: 60
+  }
+];
+
+const INITIAL_KHATA_LEDGER = [
+  {
+    id: "KTXN-1001",
+    customerId: "CL-4102",
+    customerName: "Mohammed Sahil",
+    customerPhone: "+91 70011 22334",
+    date: new Date(Date.now() - 86400000 * 3).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    type: "DEBIT",
+    amount: 1500,
+    balanceAfter: 1500,
+    paymentMode: "UDHAR",
+    billId: "INV-8819",
+    note: "Fortnight Grocery (Atta, Butter & Oil)"
+  },
+  {
+    id: "KTXN-1002",
+    customerId: "CL-8562",
+    customerName: "Ananya Kapoor",
+    customerPhone: "+91 88822 11223",
+    date: new Date(Date.now() - 86400000 * 2).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    type: "DEBIT",
+    amount: 850,
+    balanceAfter: 850,
+    paymentMode: "UDHAR",
+    billId: "INV-8840",
+    note: "Quick dairy & snacks purchase on credit"
+  },
+  {
+    id: "KTXN-1003",
+    customerId: "CL-9021",
+    customerName: "Rajesh Jha",
+    customerPhone: "+91 98765 43210",
+    date: new Date(Date.now() - 86400000 * 5).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    type: "DEBIT",
+    amount: 3200,
+    balanceAfter: 3200,
+    paymentMode: "UDHAR",
+    billId: "INV-8790",
+    note: "Monthly Ration Package"
+  },
+  {
+    id: "KTXN-1004",
+    customerId: "CL-9021",
+    customerName: "Rajesh Jha",
+    customerPhone: "+91 98765 43210",
+    date: new Date(Date.now() - 86400000 * 1).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+    type: "CREDIT",
+    amount: 3200,
+    balanceAfter: 0,
+    paymentMode: "UPI",
+    billId: "PAY-5521",
+    note: "Google Pay UPI Payment Received (Full settlement)"
   }
 ];
 
@@ -294,6 +353,7 @@ export function StoreProvider({ children }) {
           purchases: parsed.purchases && parsed.purchases.length > 0 ? parsed.purchases : INITIAL_PURCHASES,
           settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
           staff: parsed.staff && parsed.staff.length > 0 ? parsed.staff : INITIAL_STAFF_LIST,
+          khataLedger: parsed.khataLedger && parsed.khataLedger.length > 0 ? parsed.khataLedger : INITIAL_KHATA_LEDGER,
         };
       }
     } catch (e) {
@@ -326,6 +386,7 @@ export function StoreProvider({ children }) {
       purchases: INITIAL_PURCHASES,
       settings: DEFAULT_SETTINGS,
       staff: INITIAL_STAFF_LIST,
+      khataLedger: INITIAL_KHATA_LEDGER,
     };
   });
 
@@ -415,6 +476,7 @@ export function StoreProvider({ children }) {
 
   // POS Sale Completion
   const recordPosSale = (saleData) => {
+    const isCredit = saleData.paymentMode === "CREDIT" || saleData.paymentMode === "UDHAR";
     const newInvoice = {
       id: saleData.id || `INV-${Math.floor(10000 + Math.random() * 90000)}`,
       date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
@@ -427,15 +489,78 @@ export function StoreProvider({ children }) {
       cgst: saleData.cgst || 0,
       sgst: saleData.sgst || 0,
       grandTotal: saleData.grandTotal,
-      status: "Paid"
+      status: isCredit ? "Unpaid (Khata)" : "Paid"
     };
 
     decrementStock(saleData.items);
 
-    setData((prev) => ({
-      ...prev,
-      sales: [newInvoice, ...prev.sales]
-    }));
+    setData((prev) => {
+      let updatedCustomers = [...(prev.customers || [])];
+      let updatedKhata = [...(prev.khataLedger || [])];
+
+      if (isCredit && saleData.customer && saleData.customer !== "Walk-in Customer") {
+        const custIdx = updatedCustomers.findIndex(
+          (c) => c.name.toLowerCase() === saleData.customer.toLowerCase() || (saleData.phone && saleData.phone !== "N/A" && c.phone === saleData.phone)
+        );
+
+        let custId = `CL-${Math.floor(1000 + Math.random() * 9000)}`;
+        let previousDue = 0;
+
+        if (custIdx !== -1) {
+          custId = updatedCustomers[custIdx].id;
+          const currentOut = typeof updatedCustomers[custIdx].outstanding === "string"
+            ? parseFloat(updatedCustomers[custIdx].outstanding.replace(/[^0-9.]/g, "")) || 0
+            : Number(updatedCustomers[custIdx].outstanding) || 0;
+          previousDue = currentOut;
+          const newDue = currentOut + saleData.grandTotal;
+          updatedCustomers[custIdx] = {
+            ...updatedCustomers[custIdx],
+            outstanding: `₹${newDue.toLocaleString("en-IN")}`,
+            orders: (updatedCustomers[custIdx].orders || 0) + 1
+          };
+        } else {
+          // Auto register new customer with credit
+          updatedCustomers = [
+            {
+              id: custId,
+              name: saleData.customer,
+              phone: saleData.phone || "+91 98000 00000",
+              email: `${saleData.customer.toLowerCase().replace(/[^a-z0-9]/g, "")}@example.com`,
+              location: "Bengaluru, Karnataka",
+              totalPurchases: `₹${saleData.grandTotal.toLocaleString("en-IN")}`,
+              orders: 1,
+              outstanding: `₹${saleData.grandTotal.toLocaleString("en-IN")}`,
+              creditLimit: 5000,
+              tier: "Regular",
+              points: 50
+            },
+            ...updatedCustomers
+          ];
+        }
+
+        const khataEntry = {
+          id: `KTXN-${Date.now()}`,
+          customerId: custId,
+          customerName: saleData.customer,
+          customerPhone: saleData.phone || "N/A",
+          date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+          type: "DEBIT", // Udhar Diya
+          amount: saleData.grandTotal,
+          balanceAfter: previousDue + saleData.grandTotal,
+          paymentMode: "UDHAR",
+          billId: newInvoice.id,
+          note: `POS Grocery Bill #${newInvoice.id} (${saleData.items.length} items)`
+        };
+        updatedKhata = [khataEntry, ...updatedKhata];
+      }
+
+      return {
+        ...prev,
+        sales: [newInvoice, ...prev.sales],
+        customers: updatedCustomers,
+        khataLedger: updatedKhata
+      };
+    });
 
     return newInvoice;
   };
@@ -576,6 +701,115 @@ export function StoreProvider({ children }) {
     return newCustomer;
   };
 
+  // Khata Book / Credit Operations
+  const recordKhataPayment = ({ customerId, amount, paymentMode = "CASH", note = "Payment Received (Jama)" }) => {
+    const payAmount = Math.max(0, parseFloat(amount) || 0);
+    if (payAmount <= 0) return { success: false, message: "Invalid payment amount" };
+
+    let updatedCustomerName = "";
+    let updatedCustomerPhone = "";
+    let remainingBalance = 0;
+
+    setData((prev) => {
+      const updatedCustomers = (prev.customers || []).map((c) => {
+        if (c.id === customerId || c.phone === customerId || c.name === customerId) {
+          updatedCustomerName = c.name;
+          updatedCustomerPhone = c.phone;
+          const currentOut = typeof c.outstanding === "string" 
+            ? parseFloat(c.outstanding.replace(/[^0-9.]/g, "")) || 0
+            : Number(c.outstanding) || 0;
+          remainingBalance = Math.max(0, currentOut - payAmount);
+          return {
+            ...c,
+            outstanding: `₹${remainingBalance.toLocaleString("en-IN")}`
+          };
+        }
+        return c;
+      });
+
+      const newKhataEntry = {
+        id: `KTXN-${Date.now()}`,
+        customerId,
+        customerName: updatedCustomerName || "Customer",
+        customerPhone: updatedCustomerPhone || "N/A",
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+        type: "CREDIT", // Jama
+        amount: payAmount,
+        balanceAfter: remainingBalance,
+        paymentMode,
+        billId: `RCPT-${Math.floor(1000 + Math.random() * 9000)}`,
+        note: note || "Cash/UPI Payment Received (Jama)"
+      };
+
+      return {
+        ...prev,
+        customers: updatedCustomers,
+        khataLedger: [newKhataEntry, ...(prev.khataLedger || [])]
+      };
+    });
+
+    return { success: true, message: `Recorded payment of ₹${payAmount.toLocaleString("en-IN")}!` };
+  };
+
+  const recordKhataDebit = ({ customerId, amount, note = "Udhar Added", billId }) => {
+    const debitAmount = Math.max(0, parseFloat(amount) || 0);
+    if (debitAmount <= 0) return { success: false, message: "Invalid amount" };
+
+    let updatedCustomerName = "";
+    let updatedCustomerPhone = "";
+    let newBalance = 0;
+
+    setData((prev) => {
+      const updatedCustomers = (prev.customers || []).map((c) => {
+        if (c.id === customerId || c.phone === customerId || c.name === customerId) {
+          updatedCustomerName = c.name;
+          updatedCustomerPhone = c.phone;
+          const currentOut = typeof c.outstanding === "string" 
+            ? parseFloat(c.outstanding.replace(/[^0-9.]/g, "")) || 0
+            : Number(c.outstanding) || 0;
+          newBalance = currentOut + debitAmount;
+          return {
+            ...c,
+            outstanding: `₹${newBalance.toLocaleString("en-IN")}`
+          };
+        }
+        return c;
+      });
+
+      const newKhataEntry = {
+        id: `KTXN-${Date.now()}`,
+        customerId,
+        customerName: updatedCustomerName || "Customer",
+        customerPhone: updatedCustomerPhone || "N/A",
+        date: new Date().toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }),
+        type: "DEBIT", // Udhar Diya
+        amount: debitAmount,
+        balanceAfter: newBalance,
+        paymentMode: "UDHAR",
+        billId: billId || `UDH-${Math.floor(1000 + Math.random() * 9000)}`,
+        note: note || "Store Credit Given"
+      };
+
+      return {
+        ...prev,
+        customers: updatedCustomers,
+        khataLedger: [newKhataEntry, ...(prev.khataLedger || [])]
+      };
+    });
+
+    return { success: true, message: `Recorded udhar of ₹${debitAmount.toLocaleString("en-IN")}!` };
+  };
+
+  const updateCustomerCreditLimit = (customerId, newLimit) => {
+    const limitNum = Math.max(0, parseFloat(newLimit) || 0);
+    setData((prev) => ({
+      ...prev,
+      customers: (prev.customers || []).map((c) =>
+        c.id === customerId || c.phone === customerId || c.name === customerId ? { ...c, creditLimit: limitNum } : c
+      )
+    }));
+  };
+
   // Store Profile Settings
   const updateSettings = (newSettings) => {
     setData((prev) => ({
@@ -633,6 +867,24 @@ export function StoreProvider({ children }) {
     const totalExpenses = (data.purchases || []).reduce((sum, p) => sum + (p.total || 0), 0);
     const netProfit = Math.max(0, totalRevenue - totalExpenses);
 
+    const totalKhataOutstanding = (data.customers || []).reduce((sum, c) => {
+      if (typeof c.outstanding === "string") {
+        return sum + (parseFloat(c.outstanding.replace(/[^0-9.]/g, "")) || 0);
+      }
+      return sum + (Number(c.outstanding) || 0);
+    }, 0);
+
+    const totalKhataCollected = (data.khataLedger || [])
+      .filter((k) => k.type === "CREDIT")
+      .reduce((sum, k) => sum + (Number(k.amount) || 0), 0);
+
+    const khataCustomerCount = (data.customers || []).filter((c) => {
+      const due = typeof c.outstanding === "string" 
+        ? parseFloat(c.outstanding.replace(/[^0-9.]/g, "")) || 0
+        : Number(c.outstanding) || 0;
+      return due > 0;
+    }).length;
+
     return {
       totalProducts,
       lowStockCount: lowStockItems.length,
@@ -643,6 +895,9 @@ export function StoreProvider({ children }) {
       todaySales: posSalesTotal > 0 ? posSalesTotal : 12450,
       totalExpenses,
       netProfit,
+      totalKhataOutstanding,
+      totalKhataCollected,
+      khataCustomerCount
     };
   }, [data]);
 
@@ -680,6 +935,7 @@ export function StoreProvider({ children }) {
       purchases: INITIAL_PURCHASES,
       settings: DEFAULT_SETTINGS,
       staff: INITIAL_STAFF_LIST,
+      khataLedger: INITIAL_KHATA_LEDGER,
     });
     localStorage.removeItem(STORAGE_KEY);
   };
@@ -692,6 +948,7 @@ export function StoreProvider({ children }) {
     purchases: data.purchases || [],
     settings: data.settings || DEFAULT_SETTINGS,
     staff: data.staff || [],
+    khataLedger: data.khataLedger || [],
     addProduct,
     updateProduct,
     deleteProduct,
@@ -700,6 +957,9 @@ export function StoreProvider({ children }) {
     updateOrderStatus,
     recordPurchaseOrder,
     addCustomer,
+    recordKhataPayment,
+    recordKhataDebit,
+    updateCustomerCreditLimit,
     updateSettings,
     addStaff,
     updateStaff,

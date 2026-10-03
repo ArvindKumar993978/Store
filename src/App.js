@@ -23,6 +23,7 @@ import { CartProvider } from "./component/CartContext.jsx";
 import { StoreProvider } from "./context/StoreContext.jsx";
 import CheckoutPage from "./customer/CheckoutPage.jsx";
 import OrderHistoryPage  from "./customer/OrderHistoryPage.jsx";
+import KhataBook from "./admin/KhataBook.jsx";
 import CustomerSupportPage from "./customer/CustomerSupportPage.jsx";
 import ShopNowPage from "./customer/ShopNowPage.jsx";
 import ViewOffersPage from "./customer/ViewOffersPage.jsx";
@@ -43,6 +44,7 @@ function App() {
       <Route path="/settings" element={<SettingsPage />} />
       <Route path="/reports" element={<Reports />} />
       <Route path="/customers" element={<Customer />} />
+      <Route path="/khata" element={<KhataBook />} />
       <Route path="/billing" element={<Billing />} />
       <Route path="/customer-report" element={<CustomerReport />} />
       <Route path="/storefront" element={<StorefrontPage />} />

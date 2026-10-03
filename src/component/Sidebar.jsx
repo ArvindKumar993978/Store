@@ -37,6 +37,12 @@ const NAV_ITEMS = [
     active: false,
   },
   {
+    label: "Khata Book",
+    icon: "menu_book",
+    path: "/khata",
+    active: false,
+  },
+  {
     label: "Staff",
     icon: "badge",
     path: "/staff-management",

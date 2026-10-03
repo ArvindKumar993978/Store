@@ -191,6 +191,37 @@ export default function AdminDashboard() {
           ))}
         </div>
 
+        {/* Khata Book Highlights Banner */}
+        <div className="mb-8 p-5 bg-gradient-to-r from-[#006194] to-[#007bb9] rounded-2xl text-white shadow-md flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white/20 rounded-xl">
+              <span className="material-symbols-outlined text-3xl">menu_book</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="font-extrabold text-lg">Digital Khata Book (उधार खाता)</h3>
+                <span className="px-2 py-0.5 bg-amber-400 text-amber-950 font-black text-[10px] rounded uppercase">
+                  Active Ledger
+                </span>
+              </div>
+              <p className="text-xs text-blue-100 mt-0.5">
+                Market Pending Due:{" "}
+                <strong className="text-white text-sm">
+                  ₹{Number(storeMetrics.totalKhataOutstanding || 0).toLocaleString("en-IN")}
+                </strong>{" "}
+                across {storeMetrics.khataCustomerCount || 0} customer accounts • Collected: ₹{Number(storeMetrics.totalKhataCollected || 0).toLocaleString("en-IN")}
+              </p>
+            </div>
+          </div>
+          <button
+            onClick={() => navigate("/khata")}
+            className="px-5 py-2.5 bg-white text-[#006194] hover:bg-blue-50 font-extrabold text-xs rounded-xl shadow-sm transition-all flex items-center gap-2 cursor-pointer active:scale-95"
+          >
+            <span>Manage Khata &amp; Send Reminders</span>
+            <span className="material-symbols-outlined text-[16px]">arrow_forward</span>
+          </button>
+        </div>
+
         {/* Bento grid */}
         <div className="grid grid-cols-12 gap-6">
           {/* Recent Transactions */}

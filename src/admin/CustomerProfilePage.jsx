@@ -211,6 +211,13 @@ export default function CustomerProfilePage() {
           </div>
           <div className="flex gap-3">
             <button
+              onClick={() => navigate("/khata")}
+              className="px-4 py-2 bg-amber-50 border border-amber-200 text-amber-900 hover:bg-amber-100 transition-all text-sm font-semibold rounded-lg flex items-center gap-2 cursor-pointer shadow-xs"
+            >
+              <span className="material-symbols-outlined text-[20px]">menu_book</span>
+              Khata Ledger
+            </button>
+            <button
               onClick={() => {
                 setEditForm({ name: customer.name, email: customer.email, tier: customer.tier });
                 setShowEditModal(true);
