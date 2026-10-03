@@ -1,146 +1,172 @@
-# 🛍️ Store
+# 🏪 Krishna General Store — Smart Supermarket & POS System
 
-A modern and responsive **Store web application** built with React.js. This project is created to practice and demonstrate modern frontend development, reusable components, responsive UI, and project structure.
+[![React](https://img.shields.io/badge/React-18.2.0-61DAFB?style=flat-square&logo=react&logoColor=black)](https://react.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.x-38B2AC?style=flat-square&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![Firebase Hosting](https://img.shields.io/badge/Firebase_Hosting-Live-FFA000?style=flat-square&logo=firebase&logoColor=black)](https://store-for-all-c42fa.web.app/)
+[![Netlify](https://img.shields.io/badge/Netlify-Deployed-00C7B7?style=flat-square&logo=netlify&logoColor=white)](https://storeforal.netlify.app/)
+[![PWA Ready](https://img.shields.io/badge/PWA-Installable-5A0FC8?style=flat-square&logo=pwa&logoColor=white)](https://store-for-all-c42fa.web.app/)
 
+A comprehensive, production-ready **Supermarket Billing POS, Digital Khata Book & Retail Inventory Management System** built with **React 18** and **Tailwind CSS**. Designed for modern grocery and retail stores with responsive layouts, offline-ready PWA installation, and real-time inventory synchronization.
 
+---
 
-🌐 **Live Demo:** https://storeforal.netlify.app/
+## 🌐 Live Deployments
 
-## 🚀 Features
+- 🚀 **Firebase Hosting (Primary):** [https://store-for-all-c42fa.web.app](https://store-for-all-c42fa.web.app)
+- ⚡ **Netlify (Mirror):** [https://storeforal.netlify.app](https://storeforal.netlify.app)
 
-* 🏠 Modern Home Page
-* 🛍️ Store / Product Interface
-* 📱 Responsive Design
-* ⚡ React Components
-* 🎨 Tailwind CSS
-* ♻️ Reusable Components
-* 📂 Organized Project Structure
-* 🔥 Fast and Interactive UI
+---
 
-## 🛠️ Technologies Used
+## ✨ Key Features & Modules
 
-* **React.js**
-* **JavaScript**
-* **HTML5**
-* **CSS3**
-* **Tailwind CSS**
-* **Create React App**
-* **Git & GitHub**
+### 1. ⚡ High-Speed Point of Sale (POS) Counter
+- **Live Camera Barcode Scanner**: Scan product barcodes directly with mobile or laptop camera using zero-lag canvas recognition.
+- **WebAudio Audio Feedback**: Built-in cash register barcode beep sounds synthesized via WebAudio API (no audio files required).
+- **Instant Stock Depletion**: Real-time inventory deduction upon transaction completion.
+- **Promo Codes & Discount Engine**: Apply flat or percentage discounts on checkout.
+- **Digital Thermal Invoice**: Generates printable thermal receipts with QR codes and detailed tax breakdowns.
 
-## 📦 Installation
+### 2. 📖 Digital Khata Book (Customer Udhar Ledger)
+- **Credit / Debit Balance Tracking**: Record customer credit accounts (*Jama/Udhar*) with real-time balance calculations.
+- **1-Click WhatsApp Invoice Dispatch**: Send payment reminders and invoice summaries directly to customer WhatsApp with pre-filled billing messages.
+- **Settlement History**: Log partial and full repayments with date-stamped records.
 
-Clone this repository:
+### 3. 📦 Inventory & Stock Management
+- **Smart Low-Stock Alerts**: Automatic visual badges for critical inventory levels.
+- **Purchase Order (PO) Generator**: Create restock purchase orders and export them.
+- **Product Catalog Management**: Add, edit, categorise, and update grocery items with pricing, cost margins, and barcodes.
 
-```bash
-git clone https://github.com/ArvindKumar993978/Store.git
-```
+### 4. 🛒 Customer Storefront & Online Ordering
+- **Responsive Grocery Catalog**: Filter by categories (Groceries, Dairy, Beverages, Snacks, Personal Care).
+- **Live Search & Price Sorting**: Instant client-side search filtering.
+- **Cart & Checkout Workflow**: Persistent shopping cart with address input and order summary.
+- **Order Tracking & History**: View past orders and status.
 
-Go to the project directory:
+### 5. 👥 Staff & Role Management
+- **Role-Based Access**: Multi-portal system separating **Admin**, **Cashier / Staff**, and **Customer** experiences.
+- **Staff Directory**: Add, update, and manage employee records with assigned roles and contact details.
 
-```bash
-cd Store
-```
+### 6. 📊 Grocery Analytics & Margin Reports
+- **Sales & Revenue Breakdown**: Daily, weekly, and monthly sales graphs and metrics.
+- **Profit Margin Tracking**: Calculation of gross profit margin per category.
+- **CSV & Data Backup**: Export sales reports and store configuration with one click.
 
-Install dependencies:
+### 7. 📱 Progressive Web App (PWA)
+- **Full Home-Screen Installation**: Installable as a standalone native app on Android, iOS, Windows, and macOS.
+- **Custom Store Branding**: Custom-designed SVG & PNG app launcher icons, store awning splash screen, and theme color `#006194`.
 
-```bash
-npm install
-```
+---
 
-Start the development server:
+## 🛠️ Tech Stack
 
-```bash
-npm start
-```
+- **Frontend Core**: [React.js 18](https://react.dev/), [React Router v6](https://reactrouter.com/)
+- **Styling**: [Tailwind CSS](https://tailwindcss.com/)
+- **Icons**: [Lucide React](https://lucide.dev/) & Google Material Symbols
+- **Audio Synthesis**: Native WebAudio API (Zero-dependency register beeps)
+- **Camera Scanning**: HTML5 `navigator.mediaDevices` Barcode Scanner
+- **CI/CD & Hosting**: [Firebase Hosting](https://firebase.google.com/products/hosting) (automated via GitHub Actions), [Netlify](https://www.netlify.com/)
 
-The application will run at:
+---
 
-```text
-http://localhost:3000
-```
-
-## 📁 Project Structure
+## 📁 Project Directory Structure
 
 ```text
 Store/
-│
+├── .github/
+│   └── workflows/
+│       ├── firebase-hosting-merge.yml        # CI/CD auto-deploy on git push to main
+│       └── firebase-hosting-pull-request.yml  # Preview deployment for pull requests
 ├── public/
-│
+│   ├── favicon.ico                          # Multi-size browser tab icon
+│   ├── favicon.svg                          # High-DPI scalable store vector icon
+│   ├── logo192.png                          # Mobile PWA launcher icon (192x192)
+│   ├── logo512.png                          # PWA splash icon (512x512)
+│   ├── manifest.json                        # PWA web manifest with store metadata
+│   └── index.html                           # App shell & meta headers
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   ├── assets/
-│   ├── App.js
-│   └── index.js
-│
-├── .gitignore
-├── package.json
-├── package-lock.json
-├── tailwind.config.js
-├── postcss.config.js
-└── README.md
+│   ├── admin/                               # Store Admin & Management pages
+│   │   ├── AdminDashboard.jsx               # Store revenue, stats, and quick links
+│   │   ├── Billing.jsx                      # POS billing counter & scanner
+│   │   ├── KhataBook.jsx                    # Customer credit / udhar ledger
+│   │   ├── Product.jsx                      # Inventory list & stock status
+│   │   ├── AddNewProductPage.jsx            # Product creation form
+│   │   ├── Reports.jsx                      # Sales analytics & margin graphs
+│   │   ├── Customer.jsx                     # Customer CRM directory
+│   │   ├── StaffManagement.jsx              # Employee & cashier management
+│   │   └── SettingsPage.jsx                 # Store profile & tax configuration
+│   ├── customer/                            # Customer storefront & shopping pages
+│   │   ├── StorefrontPage.jsx               # Grocery browsing portal
+│   │   ├── ShoppingCart.jsx                 # Cart manager
+│   │   ├── CheckoutPage.jsx                 # Order placement
+│   │   └── OrderHistoryPage.jsx             # Customer purchase records
+│   ├── context/
+│   │   └── StoreContext.jsx                 # Global store state (products, khata, sales)
+│   ├── component/
+│   │   └── CartContext.jsx                  # Shopping cart state provider
+│   ├── main/
+│   │   └── entrance.jsx                     # Interactive multi-role portal entrance
+│   ├── App.js                               # Route registry
+│   └── index.js                             # React root bootstrap
+├── .firebaserc                              # Firebase project configuration
+├── firebase.json                            # Firebase Hosting rules & SPA rewrites
+└── package.json                             # Dependencies & scripts
 ```
 
-> The project structure may change as new features and components are added.
+---
 
-## 🖥️ Available Scripts
+## 🚀 Getting Started
 
-### Start Development Server
+### Prerequisites
 
-```bash
-npm start
-```
+- [Node.js](https://nodejs.org/) (v18 or v20+ recommended)
+- [Git](https://git-scm.com/)
 
-Runs the application in development mode.
+### Installation
 
-### Build for Production
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/ArvindKumar993978/Store.git
+   cd Store
+   ```
 
-```bash
-npm run build
-```
+2. **Install dependencies:**
+   ```bash
+   npm install
+   ```
 
-Creates an optimized production build.
+3. **Start local development server:**
+   ```bash
+   npm start
+   ```
+   Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-### Run Tests
+4. **Build for production:**
+   ```bash
+   npm run build
+   ```
 
-```bash
-npm test
-```
+---
 
-Runs the test suite.
+## 🔄 Automated CI/CD Deployment
 
-## 📸 Screenshots
+This repository is configured with **GitHub Actions** for automated continuous deployment to **Firebase Hosting**:
 
-Add screenshots of the application here.
+- **Every push to `main` branch** runs `.github/workflows/firebase-hosting-merge.yml`:
+  1. Sets up Node.js 20 LTS.
+  2. Runs `npm ci` for clean dependency installation.
+  3. Executes `npm run build` to create optimized static assets.
+  4. Deploys directly to live Firebase Hosting (`store-for-all-c42fa.web.app`).
 
-Example:
-
-```markdown
-![Home Page](./screenshots/home.png)
-```
-
-## 🎯 Project Purpose
-
-This project is developed for **learning and practicing React.js, responsive UI development, component-based architecture, and modern frontend technologies**.
-
-## 🔮 Future Improvements
-
-* [ ] Add user authentication
-* [ ] Add product search
-* [ ] Add product filtering
-* [ ] Add shopping cart
-* [ ] Add wishlist
-* [ ] Add checkout functionality
-* [ ] Add backend API
-* [ ] Add database integration
-* [x] Deploy the application
+---
 
 ## 👨‍💻 Author
 
 **Arvind Kumar**
+- GitHub: [@ArvindKumar993978](https://github.com/ArvindKumar993978)
+- Repository: [ArvindKumar993978/Store](https://github.com/ArvindKumar993978/Store)
 
-GitHub: [ArvindKumar993978](https://github.com/ArvindKumar993978)
+---
 
 ## 📄 License
 
-This project is created for learning and educational purposes.
+This project is licensed under the MIT License — feel free to use and adapt it for learning and commercial store deployments.
