@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#007bb9"/>
+      <stop offset="100%" stop-color="#004770"/>
+    </linearGradient>
+    <linearGradient id="bagGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff"/>
+      <stop offset="100%" stop-color="#f0f4f8"/>
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffc107"/>
+      <stop offset="100%" stop-color="#ff9800"/>
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#001829" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+
+  <!-- App Rounded Base -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)"/>
+  
+  <!-- Subtle inner border highlight -->
+  <rect x="6" y="6" width="500" height="500" rx="106" fill="none" stroke="#ffffff" stroke-width="2" stroke-opacity="0.2"/>
+
+  <!-- Shopping Bag Handles (Arc) -->
+  <path d="M 186 160 C 186 90, 326 90, 326 160" fill="none" stroke="url(#goldGrad)" stroke-width="24" stroke-linecap="round" filter="url(#shadow)"/>
+
+  <!-- Storefront Awning (Roof) -->
+  <g filter="url(#shadow)">
+    <!-- Awning back bar -->
+    <path d="M 100 148 L 412 148 L 424 192 L 88 192 Z" fill="#003554"/>
+    <!-- Stripes: alternating Gold & White -->
+    <polygon points="100,148 152,148 144,192 88,192" fill="#ffb703"/>
+    <polygon points="152,148 204,148 200,192 144,192" fill="#ffffff"/>
+    <polygon points="204,148 256,148 256,192 200,192" fill="#ffb703"/>
+    <polygon points="256,148 308,148 312,192 256,192" fill="#ffffff"/>
+    <polygon points="308,148 360,148 368,192 312,192" fill="#ffb703"/>
+    <polygon points="360,148 412,148 424,192 368,192" fill="#ffffff"/>
+    <!-- Awning Scallop trim -->
+    <rect x="88" y="190" width="336" height="12" rx="6" fill="#e65100"/>
+  </g>
+
+  <!-- Shopping Bag / Store Body -->
+  <path d="M 112 198 L 400 198 L 372 416 C 370 428, 360 436, 348 436 L 164 436 C 152 436, 142 428, 140 416 Z" fill="url(#bagGrad)" filter="url(#shadow)"/>
+
+  <!-- Grocery Leaf (Freshness Emblem) -->
+  <path d="M 370 120 C 420 120, 430 180, 370 200 C 370 150, 340 140, 370 120 Z" fill="#10b981" filter="url(#shadow)"/>
+  <path d="M 370 120 C 385 155, 395 180, 370 200" stroke="#059669" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Prominent "K" Monogram (Krishna Store) inside the bag -->
+  <g fill="#006194">
+    <!-- Vertical Pillar -->
+    <rect x="200" y="244" width="28" height="152" rx="8"/>
+    <!-- Diagonal Up -->
+    <polygon points="228,324 296,244 330,244 246,340" />
+    <!-- Diagonal Down -->
+    <polygon points="232,324 332,400 294,400 220,344" />
+    <!-- Center Dot/Star -->
+    <circle cx="316" cy="300" r="10" fill="url(#goldGrad)"/>
+  </g>
+
+  <!-- Store Text Banner at bottom of bag -->
+  <text x="256" y="420" text-anchor="middle" font-family="'Inter', -apple-system, sans-serif" font-weight="900" font-size="20" fill="#004770" letter-spacing="3">KRISHNA STORE</text>
+</svg>
