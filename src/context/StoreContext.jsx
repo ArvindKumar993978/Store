@@ -1,4 +1,22 @@
 import React, { createContext, useContext, useState, useEffect, useMemo } from "react";
+import {
+  seedFirestoreIfEmpty,
+  subscribeToProducts,
+  subscribeToSales,
+  subscribeToOrders,
+  subscribeToCustomers,
+  subscribeToKhata,
+  subscribeToSettings,
+  saveProductToDb,
+  updateProductInDb,
+  deleteProductFromDb,
+  saveSaleToDb,
+  saveOrderToDb,
+  updateOrderStatusInDb,
+  saveCustomerToDb,
+  saveKhataEntryToDb,
+  saveSettingsToDb
+} from "../services/firebaseService";
 
 /*
   StoreContext
@@ -399,6 +417,60 @@ export function StoreProvider({ children }) {
     }
   }, [data]);
 
+  // Real-time Cloud Firestore synchronization & auto-seeding
+  useEffect(() => {
+    seedFirestoreIfEmpty({
+      products: INITIAL_PRODUCTS,
+      customers: INITIAL_CUSTOMERS_LIST,
+      khataLedger: INITIAL_KHATA_LEDGER,
+      sales: INITIAL_SALES,
+      settings: DEFAULT_SETTINGS
+    });
+
+    const unsubProducts = subscribeToProducts((cloudProducts) => {
+      if (cloudProducts && cloudProducts.length > 0) {
+        setData((prev) => ({ ...prev, products: cloudProducts }));
+      }
+    });
+
+    const unsubSales = subscribeToSales((cloudSales) => {
+      if (cloudSales && cloudSales.length > 0) {
+        setData((prev) => ({ ...prev, sales: cloudSales }));
+      }
+    });
+
+    const unsubOrders = subscribeToOrders((cloudOrders) => {
+      setData((prev) => ({ ...prev, orders: cloudOrders }));
+    });
+
+    const unsubCustomers = subscribeToCustomers((cloudCustomers) => {
+      if (cloudCustomers && cloudCustomers.length > 0) {
+        setData((prev) => ({ ...prev, customers: cloudCustomers }));
+      }
+    });
+
+    const unsubKhata = subscribeToKhata((cloudKhata) => {
+      if (cloudKhata && cloudKhata.length > 0) {
+        setData((prev) => ({ ...prev, khataLedger: cloudKhata }));
+      }
+    });
+
+    const unsubSettings = subscribeToSettings((cloudSettings) => {
+      if (cloudSettings) {
+        setData((prev) => ({ ...prev, settings: { ...DEFAULT_SETTINGS, ...cloudSettings } }));
+      }
+    });
+
+    return () => {
+      if (unsubProducts) unsubProducts();
+      if (unsubSales) unsubSales();
+      if (unsubOrders) unsubOrders();
+      if (unsubCustomers) unsubCustomers();
+      if (unsubKhata) unsubKhata();
+      if (unsubSettings) unsubSettings();
+    };
+  }, []);
+
   // Product Operations
   const addProduct = (productData) => {
     const newProduct = {
@@ -423,10 +495,12 @@ export function StoreProvider({ children }) {
       ...prev,
       products: [newProduct, ...prev.products]
     }));
+    saveProductToDb(newProduct);
     return newProduct;
   };
 
   const updateProduct = (id, updatedFields) => {
+    let updatedItem = null;
     setData((prev) => ({
       ...prev,
       products: prev.products.map((p) => {
@@ -440,11 +514,15 @@ export function StoreProvider({ children }) {
             merged.badge = "LOW STOCK";
             merged.badgeColor = "#894d00";
           }
+          updatedItem = merged;
           return merged;
         }
         return p;
       })
     }));
+    if (updatedItem) {
+      updateProductInDb(id, updatedItem);
+    }
   };
 
   const deleteProduct = (id) => {
@@ -452,6 +530,7 @@ export function StoreProvider({ children }) {
       ...prev,
       products: prev.products.filter((p) => p.id !== id)
     }));
+    deleteProductFromDb(id);
   };
 
   // Decrement Stock helper
@@ -494,6 +573,9 @@ export function StoreProvider({ children }) {
 
     decrementStock(saleData.items);
 
+    let customerToSync = null;
+    let khataToSync = null;
+
     setData((prev) => {
       let updatedCustomers = [...(prev.customers || [])];
       let updatedKhata = [...(prev.khataLedger || [])];
@@ -518,27 +600,26 @@ export function StoreProvider({ children }) {
             outstanding: `₹${newDue.toLocaleString("en-IN")}`,
             orders: (updatedCustomers[custIdx].orders || 0) + 1
           };
+          customerToSync = updatedCustomers[custIdx];
         } else {
           // Auto register new customer with credit
-          updatedCustomers = [
-            {
-              id: custId,
-              name: saleData.customer,
-              phone: saleData.phone || "+91 98000 00000",
-              email: `${saleData.customer.toLowerCase().replace(/[^a-z0-9]/g, "")}@example.com`,
-              location: "Bengaluru, Karnataka",
-              totalPurchases: `₹${saleData.grandTotal.toLocaleString("en-IN")}`,
-              orders: 1,
-              outstanding: `₹${saleData.grandTotal.toLocaleString("en-IN")}`,
-              creditLimit: 5000,
-              tier: "Regular",
-              points: 50
-            },
-            ...updatedCustomers
-          ];
+          customerToSync = {
+            id: custId,
+            name: saleData.customer,
+            phone: saleData.phone || "+91 98000 00000",
+            email: `${saleData.customer.toLowerCase().replace(/[^a-z0-9]/g, "")}@example.com`,
+            location: "Bengaluru, Karnataka",
+            totalPurchases: `₹${saleData.grandTotal.toLocaleString("en-IN")}`,
+            orders: 1,
+            outstanding: `₹${saleData.grandTotal.toLocaleString("en-IN")}`,
+            creditLimit: 5000,
+            tier: "Regular",
+            points: 50
+          };
+          updatedCustomers = [customerToSync, ...updatedCustomers];
         }
 
-        const khataEntry = {
+        khataToSync = {
           id: `KTXN-${Date.now()}`,
           customerId: custId,
           customerName: saleData.customer,
@@ -551,7 +632,7 @@ export function StoreProvider({ children }) {
           billId: newInvoice.id,
           note: `POS Grocery Bill #${newInvoice.id} (${saleData.items.length} items)`
         };
-        updatedKhata = [khataEntry, ...updatedKhata];
+        updatedKhata = [khataToSync, ...updatedKhata];
       }
 
       return {
@@ -561,6 +642,16 @@ export function StoreProvider({ children }) {
         khataLedger: updatedKhata
       };
     });
+
+    // Cloud Firestore Sync
+    const updatedProductsList = (data.products || []).map((p) => {
+      const it = (saleData.items || []).find((x) => x.id === p.id);
+      return it ? { ...p, stock: Math.max(0, p.stock - (it.qty || 1)) } : p;
+    });
+    saveSaleToDb(newInvoice, updatedProductsList);
+
+    if (customerToSync) saveCustomerToDb(customerToSync);
+    if (khataToSync) saveKhataEntryToDb(khataToSync);
 
     return newInvoice;
   };
@@ -590,6 +681,7 @@ export function StoreProvider({ children }) {
       orders: [newOrder, ...prev.orders]
     }));
 
+    saveOrderToDb(newOrder);
     return newOrder;
   };
 
@@ -599,6 +691,7 @@ export function StoreProvider({ children }) {
       ...prev,
       orders: prev.orders.map((o) => (o.id === orderId ? { ...o, status: newStatus } : o))
     }));
+    updateOrderStatusInDb(orderId, newStatus);
   };
 
   // Validate Promo Code
@@ -688,17 +781,21 @@ export function StoreProvider({ children }) {
       points: Number(customerData.points) || 50
     };
 
+    let savedCust = newCustomer;
+
     setData((prev) => {
       const existingIdx = (prev.customers || []).findIndex((c) => c.phone === newCustomer.phone && newCustomer.phone !== "N/A");
       if (existingIdx !== -1) {
         const updated = [...prev.customers];
-        updated[existingIdx] = { ...updated[existingIdx], ...newCustomer, id: updated[existingIdx].id };
+        savedCust = { ...updated[existingIdx], ...newCustomer, id: updated[existingIdx].id };
+        updated[existingIdx] = savedCust;
         return { ...prev, customers: updated };
       }
       return { ...prev, customers: [newCustomer, ...(prev.customers || [])] };
     });
 
-    return newCustomer;
+    saveCustomerToDb(savedCust);
+    return savedCust;
   };
 
   // Khata Book / Credit Operations
@@ -709,6 +806,8 @@ export function StoreProvider({ children }) {
     let updatedCustomerName = "";
     let updatedCustomerPhone = "";
     let remainingBalance = 0;
+    let customerToSync = null;
+    let khataEntryToSync = null;
 
     setData((prev) => {
       const updatedCustomers = (prev.customers || []).map((c) => {
@@ -719,15 +818,17 @@ export function StoreProvider({ children }) {
             ? parseFloat(c.outstanding.replace(/[^0-9.]/g, "")) || 0
             : Number(c.outstanding) || 0;
           remainingBalance = Math.max(0, currentOut - payAmount);
-          return {
+          const updated = {
             ...c,
             outstanding: `₹${remainingBalance.toLocaleString("en-IN")}`
           };
+          customerToSync = updated;
+          return updated;
         }
         return c;
       });
 
-      const newKhataEntry = {
+      khataEntryToSync = {
         id: `KTXN-${Date.now()}`,
         customerId,
         customerName: updatedCustomerName || "Customer",
@@ -744,9 +845,12 @@ export function StoreProvider({ children }) {
       return {
         ...prev,
         customers: updatedCustomers,
-        khataLedger: [newKhataEntry, ...(prev.khataLedger || [])]
+        khataLedger: [khataEntryToSync, ...(prev.khataLedger || [])]
       };
     });
+
+    if (khataEntryToSync) saveKhataEntryToDb(khataEntryToSync);
+    if (customerToSync) saveCustomerToDb(customerToSync);
 
     return { success: true, message: `Recorded payment of ₹${payAmount.toLocaleString("en-IN")}!` };
   };
@@ -758,6 +862,8 @@ export function StoreProvider({ children }) {
     let updatedCustomerName = "";
     let updatedCustomerPhone = "";
     let newBalance = 0;
+    let customerToSync = null;
+    let khataEntryToSync = null;
 
     setData((prev) => {
       const updatedCustomers = (prev.customers || []).map((c) => {
@@ -768,15 +874,17 @@ export function StoreProvider({ children }) {
             ? parseFloat(c.outstanding.replace(/[^0-9.]/g, "")) || 0
             : Number(c.outstanding) || 0;
           newBalance = currentOut + debitAmount;
-          return {
+          const updated = {
             ...c,
             outstanding: `₹${newBalance.toLocaleString("en-IN")}`
           };
+          customerToSync = updated;
+          return updated;
         }
         return c;
       });
 
-      const newKhataEntry = {
+      khataEntryToSync = {
         id: `KTXN-${Date.now()}`,
         customerId,
         customerName: updatedCustomerName || "Customer",
@@ -793,9 +901,12 @@ export function StoreProvider({ children }) {
       return {
         ...prev,
         customers: updatedCustomers,
-        khataLedger: [newKhataEntry, ...(prev.khataLedger || [])]
+        khataLedger: [khataEntryToSync, ...(prev.khataLedger || [])]
       };
     });
+
+    if (khataEntryToSync) saveKhataEntryToDb(khataEntryToSync);
+    if (customerToSync) saveCustomerToDb(customerToSync);
 
     return { success: true, message: `Recorded udhar of ₹${debitAmount.toLocaleString("en-IN")}!` };
   };
@@ -812,10 +923,12 @@ export function StoreProvider({ children }) {
 
   // Store Profile Settings
   const updateSettings = (newSettings) => {
+    const merged = { ...(data.settings || DEFAULT_SETTINGS), ...newSettings };
     setData((prev) => ({
       ...prev,
-      settings: { ...(prev.settings || DEFAULT_SETTINGS), ...newSettings }
+      settings: merged
     }));
+    saveSettingsToDb(merged);
   };
 
   // Staff Management
