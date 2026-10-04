@@ -27,7 +27,7 @@ import { useAuth } from "../context/AuthContext";
 const Entrance = () => {
 
   const navigate = useNavigate();
-  const { user, logout, isAdmin, isStaff } = useAuth();
+  const { user, logout } = useAuth();
 
   // Card icon hover animation (same behavior as the original <script>)
   useEffect(() => {
@@ -181,15 +181,21 @@ const Entrance = () => {
                   ))}
                 </div>
 
-                <button
-                  onClick={() => {
-                    if (isAdmin) navigate("/admin");
-                    else navigate("/login?role=admin");
-                  }}
-                  className="mt-auto w-full py-4 bg-[#006194] hover:bg-[#006398] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
-                  {isAdmin ? "Enter Admin Dashboard" : "Admin Sign In / PIN"}
-                  <span className="material-symbols-outlined">arrow_forward</span>
-                </button>
+                <div className="mt-auto space-y-2">
+                  <button
+                    onClick={() => navigate("/admin")}
+                    className="w-full py-3.5 bg-[#006194] hover:bg-[#006398] text-white rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+                    <span>Enter Admin Dashboard</span>
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </button>
+                  <button
+                    onClick={() => navigate("/login?role=admin")}
+                    className="w-full py-2 bg-[#eff4ff] text-[#006194] hover:bg-[#dce9ff] rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors border border-[#006194]/20"
+                  >
+                    <span className="material-symbols-outlined text-sm">lock</span>
+                    Admin Sign In / PIN
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -231,18 +237,16 @@ const Entrance = () => {
                   <button
                     onClick={() => navigate("/storefront")}
                     className="w-full py-3.5 border-2 border-[#006a61] text-[#006a61] hover:bg-[#86f2e4]/10 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
-                    Go to Storefront
+                    <span>Go to Storefront</span>
                     <span className="material-symbols-outlined">shopping_bag</span>
                   </button>
-                  {!user && (
-                    <button
-                      onClick={() => navigate("/login?role=customer")}
-                      className="w-full py-2 bg-[#006a61] text-white hover:bg-[#004e47] rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
-                    >
-                      <span className="material-symbols-outlined text-sm">person</span>
-                      Customer Login / Sign Up
-                    </button>
-                  )}
+                  <button
+                    onClick={() => navigate("/login?role=customer")}
+                    className="w-full py-2 bg-[#006a61] text-white hover:bg-[#004e47] rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors"
+                  >
+                    <span className="material-symbols-outlined text-sm">person</span>
+                    Customer Login / Sign Up
+                  </button>
                 </div>
               </div>
             </div>
@@ -281,15 +285,21 @@ const Entrance = () => {
                   ))}
                 </div>
 
-                <button
-                  onClick={() => {
-                    if (isStaff) navigate("/staff");
-                    else navigate("/login?role=staff");
-                  }}
-                  className="mt-auto w-full py-4 border-2 border-[#b45309] text-[#92400e] hover:bg-[#fde68a]/20 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
-                  {isStaff ? "Enter Staff Portal" : "Staff PIN Sign In"}
-                  <span className="material-symbols-outlined">arrow_forward</span>
-                </button>
+                <div className="mt-auto space-y-2">
+                  <button
+                    onClick={() => navigate("/staff")}
+                    className="w-full py-3.5 border-2 border-[#b45309] text-[#92400e] hover:bg-[#fde68a]/20 rounded-lg font-semibold text-sm flex items-center justify-center gap-2 transition-colors active:scale-[0.98]">
+                    <span>Enter Staff Portal</span>
+                    <span className="material-symbols-outlined">arrow_forward</span>
+                  </button>
+                  <button
+                    onClick={() => navigate("/login?role=staff")}
+                    className="w-full py-2 bg-[#fffbeb] text-[#b45309] hover:bg-[#fef3c7] rounded-lg font-semibold text-xs flex items-center justify-center gap-1.5 transition-colors border border-[#b45309]/20"
+                  >
+                    <span className="material-symbols-outlined text-sm">badge</span>
+                    Staff PIN Sign In
+                  </button>
+                </div>
               </div>
             </div>
           </div>

@@ -3,7 +3,6 @@ import { Routes, Route } from "react-router-dom";
 
 import Entrance from './main/entrance.jsx';
 import LoginPage from './auth/LoginPage.jsx';
-import ProtectedRoute from './auth/ProtectedRoute.jsx';
 import AdminDashboard from './admin/AdminDashboard.jsx';
 import AddNewProductPage from './admin/AddNewProductPage.jsx';
 import Sales from './admin/Sales.jsx';
@@ -44,169 +43,29 @@ function App() {
             <Route path="/" element={<Entrance />} />
             <Route path="/login" element={<LoginPage />} />
 
-            {/* Protected Admin Routes (Accessible by Admin and Staff Cashiers) */}
-            <Route
-              path="/admin"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <AdminDashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/product"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <Product />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/add-product"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <AddNewProductPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/sales"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <Sales />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/billing"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <Billing />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/khata"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <KhataBook />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/customers"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <Customer />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/customer-report"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <CustomerReport />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/customer-profile"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <CustomerProfilePage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/reports"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <Reports />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/settings"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <SettingsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/CreatePurchaseOrder"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <CreatePurchaseOrder />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/billing-details"
-              element={
-                <ProtectedRoute allowedRoles={['admin', 'staff']}>
-                  <Billingdetails />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/staff-management"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <StaffManagement />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/backup-data"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <BackupData />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/subscriptionPlans"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <SubscriptionPlans />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/export-progress"
-              element={
-                <ProtectedRoute allowedRoles={['admin']}>
-                  <ReportProgress isOpen={true} />
-                </ProtectedRoute>
-              }
-            />
+            {/* Admin Management & POS Routes */}
+            <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/dashboard" element={<AdminDashboard />} />
+            <Route path="/product" element={<Product />} />
+            <Route path="/add-product" element={<AddNewProductPage />} />
+            <Route path="/sales" element={<Sales />} />
+            <Route path="/billing" element={<Billing />} />
+            <Route path="/khata" element={<KhataBook />} />
+            <Route path="/customers" element={<Customer />} />
+            <Route path="/customer-report" element={<CustomerReport />} />
+            <Route path="/customer-profile" element={<CustomerProfilePage />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/CreatePurchaseOrder" element={<CreatePurchaseOrder />} />
+            <Route path="/billing-details" element={<Billingdetails />} />
+            <Route path="/staff-management" element={<StaffManagement />} />
+            <Route path="/backup-data" element={<BackupData />} />
+            <Route path="/subscriptionPlans" element={<SubscriptionPlans />} />
+            <Route path="/export-progress" element={<ReportProgress isOpen={true} />} />
 
-            {/* Protected Staff / Employee Workspace */}
-            <Route
-              path="/staff"
-              element={
-                <ProtectedRoute allowedRoles={['staff', 'admin']}>
-                  <Employee />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/staff-handler"
-              element={
-                <ProtectedRoute allowedRoles={['staff', 'admin']}>
-                  <EmployeeHandler />
-                </ProtectedRoute>
-              }
-            />
+            {/* Staff / Employee Portal */}
+            <Route path="/staff" element={<Employee />} />
+            <Route path="/staff-handler" element={<EmployeeHandler />} />
 
             {/* Customer Storefront & Shopping Routes */}
             <Route path="/storefront" element={<StorefrontPage />} />
