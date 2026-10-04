@@ -15,7 +15,11 @@ import {
   updateOrderStatusInDb,
   saveCustomerToDb,
   saveKhataEntryToDb,
-  saveSettingsToDb
+  saveSettingsToDb,
+  subscribeToStaff,
+  saveStaffToDb,
+  updateStaffInDb,
+  deleteStaffFromDb
 } from "../services/firebaseService";
 
 /*
@@ -424,7 +428,8 @@ export function StoreProvider({ children }) {
       customers: INITIAL_CUSTOMERS_LIST,
       khataLedger: INITIAL_KHATA_LEDGER,
       sales: INITIAL_SALES,
-      settings: DEFAULT_SETTINGS
+      settings: DEFAULT_SETTINGS,
+      staff: INITIAL_STAFF_LIST
     });
 
     const unsubProducts = subscribeToProducts((cloudProducts) => {
@@ -461,6 +466,12 @@ export function StoreProvider({ children }) {
       }
     });
 
+    const unsubStaff = subscribeToStaff((cloudStaff) => {
+      if (cloudStaff && cloudStaff.length > 0) {
+        setData((prev) => ({ ...prev, staff: cloudStaff }));
+      }
+    });
+
     return () => {
       if (unsubProducts) unsubProducts();
       if (unsubSales) unsubSales();
@@ -468,6 +479,7 @@ export function StoreProvider({ children }) {
       if (unsubCustomers) unsubCustomers();
       if (unsubKhata) unsubKhata();
       if (unsubSettings) unsubSettings();
+      if (unsubStaff) unsubStaff();
     };
   }, []);
 
@@ -939,33 +951,59 @@ export function StoreProvider({ children }) {
       email: staffMember.email.trim(),
       role: staffMember.role || "Cashier",
       status: "Active",
-      lastLogin: "Just now"
+      lastLogin: "Just now",
+      phone: staffMember.phone || "+91 98000 00000",
+      dept: staffMember.dept || (staffMember.role === "Store Manager" ? "Operations" : staffMember.role === "Inventory Clerk" ? "Inventory" : "Sales")
     };
     setData((prev) => ({
       ...prev,
       staff: [newStaff, ...(prev.staff || [])]
     }));
+    saveStaffToDb(newStaff);
     return newStaff;
   };
 
   const updateStaff = (id, updatedFields) => {
-    setData((prev) => ({
-      ...prev,
-      staff: (prev.staff || []).map((s) => s.id === id || s.email === id ? { ...s, ...updatedFields } : s)
-    }));
+    let syncedMember = null;
+    setData((prev) => {
+      const updatedList = (prev.staff || []).map((s) => {
+        if (s.id === id || s.email === id) {
+          syncedMember = { ...s, ...updatedFields };
+          return syncedMember;
+        }
+        return s;
+      });
+      return { ...prev, staff: updatedList };
+    });
+    if (syncedMember) {
+      updateStaffInDb(syncedMember.id || id, updatedFields);
+    }
   };
 
   const toggleStaffStatus = (identifier) => {
-    setData((prev) => ({
-      ...prev,
-      staff: (prev.staff || []).map((s) => {
+    let syncedMember = null;
+    setData((prev) => {
+      const updatedList = (prev.staff || []).map((s) => {
         if (s.id === identifier || s.email === identifier) {
           const nextStatus = s.status === "Active" ? "Inactive" : "Active";
-          return { ...s, status: nextStatus };
+          syncedMember = { ...s, status: nextStatus };
+          return syncedMember;
         }
         return s;
-      })
+      });
+      return { ...prev, staff: updatedList };
+    });
+    if (syncedMember) {
+      updateStaffInDb(syncedMember.id || identifier, { status: syncedMember.status });
+    }
+  };
+
+  const deleteStaff = (id) => {
+    setData((prev) => ({
+      ...prev,
+      staff: (prev.staff || []).filter((s) => s.id !== id && s.email !== id)
     }));
+    deleteStaffFromDb(id);
   };
 
   // Computed Live Store KPIs & Analytics
@@ -1077,6 +1115,7 @@ export function StoreProvider({ children }) {
     addStaff,
     updateStaff,
     toggleStaffStatus,
+    deleteStaff,
     applyPromoCode,
     promoCodes: PROMO_CODES,
     storeMetrics,

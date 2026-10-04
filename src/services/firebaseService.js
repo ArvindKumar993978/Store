@@ -72,8 +72,28 @@ export async function seedFirestoreIfEmpty(seedData) {
         batch.set(settingsRef, seedData.settings);
       }
 
+      // Seed Staff
+      if (seedData.staff) {
+        seedData.staff.forEach((st) => {
+          const ref = doc(db, "staff", st.id.toString());
+          batch.set(ref, st);
+        });
+      }
+
       await batch.commit();
       console.log("Firestore successfully seeded with initial store catalog!");
+    } else {
+      // If products exist, check if staff collection needs standalone seeding
+      const staffSnap = await getDocs(collection(db, "staff"));
+      if (staffSnap.empty && seedData.staff && seedData.staff.length > 0) {
+        const staffBatch = writeBatch(db);
+        seedData.staff.forEach((st) => {
+          const ref = doc(db, "staff", st.id.toString());
+          staffBatch.set(ref, st);
+        });
+        await staffBatch.commit();
+        console.log("Firestore seeded with staff directory.");
+      }
     }
   } catch (err) {
     console.warn("Firestore seed check encountered an issue (using local state fallback):", err);
@@ -157,6 +177,19 @@ export function subscribeToSettings(callback) {
   }
 }
 
+export function subscribeToStaff(callback) {
+  try {
+    return onSnapshot(collection(db, "staff"), (snapshot) => {
+      if (!snapshot.empty) {
+        const items = snapshot.docs.map((d) => d.data());
+        callback(items);
+      }
+    }, (err) => console.warn("Staff sync warning:", err));
+  } catch (e) {
+    return () => {};
+  }
+}
+
 // Database Write Operations (Safe with local fallback)
 export async function saveProductToDb(product) {
   try {
@@ -235,6 +268,31 @@ export async function saveSettingsToDb(settings) {
     await setDoc(doc(db, "metadata", "settings"), settings);
   } catch (err) {
     console.warn("Cloud save settings failed:", err);
+  }
+}
+
+export async function saveStaffToDb(staffMember) {
+  try {
+    const id = staffMember.id ? staffMember.id.toString() : Date.now().toString();
+    await setDoc(doc(db, "staff", id), staffMember, { merge: true });
+  } catch (err) {
+    console.warn("Cloud save staff failed:", err);
+  }
+}
+
+export async function updateStaffInDb(id, fields) {
+  try {
+    await updateDoc(doc(db, "staff", id.toString()), fields);
+  } catch (err) {
+    console.warn("Cloud update staff failed:", err);
+  }
+}
+
+export async function deleteStaffFromDb(id) {
+  try {
+    await deleteDoc(doc(db, "staff", id.toString()));
+  } catch (err) {
+    console.warn("Cloud delete staff failed:", err);
   }
 }
 

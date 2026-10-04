@@ -1,17 +1,11 @@
 import React, { useState } from "react";
+import { useStore } from "../../../context/StoreContext";
 /*
   Status chip colors:
     Present -> bg #026a4814 text #005035 dot #005035
     Late    -> bg #ffdad680 text #93000a dot #ba1a1a
     Absent  -> bg #e0e3e5   text #40474f dot #40474f
 */
-
-const staff = [
-  { initials: "JD", name: "Jane Doe", id: "EMP-042", dept: "Engineering", checkIn: "08:45 AM", status: "Present" },
-  { initials: "JS", name: "John Smith", id: "EMP-089", dept: "Sales", checkIn: "09:15 AM", status: "Late" },
-  { initials: "AW", name: "Alice Williams", id: "EMP-112", dept: "Operations", checkIn: "--:--", status: "Absent" },
-  { initials: "MR", name: "Marcus Reed", id: "EMP-156", dept: "Engineering", checkIn: "08:55 AM", status: "Present" },
-];
 
 const statusStyles = {
   Present: { bg: "#026a4814", color: "#005035", border: "#026a4833", dot: "#005035" },
@@ -20,7 +14,7 @@ const statusStyles = {
 };
 
 const StatusChip = ({ status }) => {
-  const s = statusStyles[status];
+  const s = statusStyles[status] || statusStyles.Present;
   return (
     <span
       className="inline-flex items-center px-[8px] py-[4px] rounded-[6px] text-[12px] font-semibold gap-1 border"
@@ -33,17 +27,27 @@ const StatusChip = ({ status }) => {
 };
 
 const StaffTable = ({ onNavigate }) => {
+  const { staff: storeStaff, updateStaff } = useStore();
   const [dept, setDept] = useState("All Departments");
-  const [staffList, setStaffList] = useState(staff);
   const [actionMenuStaff, setActionMenuStaff] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const staffList = (storeStaff || []).map((s) => ({
+    ...s,
+    initials: s.initials || (s.name ? s.name.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase() : "ST"),
+    dept: s.dept || (s.role === "Store Manager" ? "Operations" : s.role === "Inventory Clerk" ? "Inventory" : "Sales"),
+    checkIn: s.checkIn || (s.status === "Active" || s.attendanceStatus === "Present" ? "09:00 AM" : "--:--"),
+    status: s.attendanceStatus || (s.status === "Active" ? "Present" : "Absent")
+  }));
 
   const filtered = staffList.filter((s) => dept === "All Departments" || s.dept === dept);
 
   const updateStatus = (id, newStatus) => {
-    setStaffList((prev) =>
-      prev.map((s) => (s.id === id ? { ...s, status: newStatus } : s))
-    );
+    updateStaff(id, {
+      attendanceStatus: newStatus,
+      status: newStatus === "Absent" ? "Inactive" : "Active",
+      checkIn: newStatus === "Absent" ? "--:--" : "09:00 AM"
+    });
     setActionMenuStaff(null);
   };
 
@@ -61,7 +65,7 @@ const StaffTable = ({ onNavigate }) => {
             onChange={(e) => setDept(e.target.value)}
             className="pl-[36px] pr-[32px] py-[8px] bg-[#f2f4f6] border border-[#bfc7d2] rounded-[8px] text-[14px] text-[#191c1e] appearance-none focus:ring-2 focus:ring-[#004870] focus:border-[#004870] outline-none"
           >
-            {["All Departments", "Sales", "Engineering", "Operations"].map((d) => (
+            {["All Departments", "Sales", "Inventory", "Operations"].map((d) => (
               <option key={d}>{d}</option>
             ))}
           </select>

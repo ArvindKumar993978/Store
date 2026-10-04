@@ -216,6 +216,34 @@ export function AuthProvider({ children }) {
       return { success: true, user };
     }
 
+    // Check dynamic staff created from Admin Portal / Firestore
+    try {
+      const savedStore = localStorage.getItem("krishna_store_db_v2");
+      if (savedStore) {
+        const parsed = JSON.parse(savedStore);
+        const dynamicList = parsed.staff || [];
+        const dynamicStaff = dynamicList.find(
+          (s) =>
+            (s.email && s.email.toLowerCase() === input) ||
+            (s.id && s.id.toString().toLowerCase() === input) ||
+            (s.name && s.name.toLowerCase() === input) ||
+            (s.phone && s.phone.replace(/[^0-9]/g, "") === input.replace(/[^0-9]/g, ""))
+        );
+        if (dynamicStaff) {
+          const user = {
+            uid: dynamicStaff.id.toString(),
+            name: dynamicStaff.name,
+            email: dynamicStaff.email,
+            phone: dynamicStaff.phone || "",
+            role: "staff",
+            roleTitle: dynamicStaff.role || "Staff Member"
+          };
+          setCurrentUser(user);
+          return { success: true, user };
+        }
+      }
+    } catch (e) {}
+
     return {
       success: false,
       message: "Staff member not found. Select an employee from the list or enter a valid staff PIN (e.g. 1111 for Cashier)."
