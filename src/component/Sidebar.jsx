@@ -1,6 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 /*
   SIDEBAR COMPONENT
@@ -68,6 +69,7 @@ const STORE_SUBTITLE = "Inventory Admin";
 
 export default function Sidebar() {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
   return (
     <aside className="fixed left-0 top-0 h-screen w-60 bg-[#f8f9ff] border-r border-[#bfc7d2] flex flex-col py-6 px-4 z-50">
@@ -118,19 +120,27 @@ export default function Sidebar() {
         </button>
         <div 
           onClick={() => navigate("/settings")}
-          className="flex items-center gap-4 px-2 py-2 rounded-xl cursor-pointer hover:bg-[#eff4ff] transition-colors"
+          className="flex items-center gap-3 px-2 py-2 rounded-xl cursor-pointer hover:bg-[#eff4ff] transition-colors"
           title="Open Settings"
         >
-          <img
-            className="w-10 h-10 rounded-full border border-[#bfc7d2] object-cover"
-            alt="Admin profile"
-            src={PROFILE.photo}
-          />
-          <div className="overflow-hidden flex-1">
-            <p className="text-sm font-semibold truncate">{PROFILE.name}</p>
-            <p className="text-[11px] text-[#3f4850] opacity-70">{PROFILE.role}</p>
+          <div className="w-9 h-9 rounded-full bg-[#006194] text-white flex items-center justify-center font-bold text-xs uppercase flex-shrink-0 shadow-sm">
+            {(user?.name || PROFILE.name).charAt(0)}
           </div>
-          <span className="material-symbols-outlined text-sm text-[#707881]">settings</span>
+          <div className="overflow-hidden flex-1">
+            <p className="text-xs font-bold truncate text-[#0b1c30]">{user?.name || PROFILE.name}</p>
+            <p className="text-[10px] text-[#006194] font-medium truncate">{user?.roleTitle || PROFILE.role}</p>
+          </div>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              logout();
+              navigate("/");
+            }}
+            className="p-1 text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-md transition-colors"
+            title="Sign Out"
+          >
+            <span className="material-symbols-outlined text-base">logout</span>
+          </button>
         </div>
       </div>
     </aside>

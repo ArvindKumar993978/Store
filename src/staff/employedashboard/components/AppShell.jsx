@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../../context/AuthContext";
 /*
   Quick color reference (matches the Staff Handler / rest of the app):
     #004870  -> primary (deep blue)
@@ -20,9 +21,6 @@ const NAV_ITEMS = [
   { key: "leave", label: "Leave Center", icon: "event_busy" },
   { key: "profile", label: "Settings", icon: "settings" },
 ];
-
-const AVATAR_URL =
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuC8To_BqVmh_iSlVZHSbczbq2SCnpkIikg_lNFEZwg-aQVaZqpLNA2LoG4vRbEXbMRf-a7EZTLJmYuI08YFRWHMt3FokDnY8uyz7ZC__-moeWBVjEQEYF2bVjSEfxw5qq8p7NNRej1INts7fuyN8oP1IwBDp6xEjZ-s2JKyAQmxAerk7kxjW051RG1ENNS_T9W9a2xCZGB-Pb4us8OwHL3QP3xS5ApkDQUboF3gncp95XLSq3oSG7SAWw";
 
 function NavLink({ item, active, onClick, mobile }) {
   if (mobile) {
@@ -62,6 +60,7 @@ function NavLink({ item, active, onClick, mobile }) {
 
 export default function AppShell({ page, onNavigate, children }) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isClockedIn, setIsClockedIn] = useState(false);
   const [lastClockTime, setLastClockTime] = useState(null);
@@ -226,8 +225,11 @@ export default function AppShell({ page, onNavigate, children }) {
               <span>Help Support</span>
             </button>
             <button 
-              onClick={() => navigate("/")}
-              className="flex items-center gap-3 px-4 py-2 text-[#40474f] hover:bg-[#e6e8ea] rounded-lg text-[14px] transition-all text-left"
+              onClick={() => {
+                logout();
+                navigate("/");
+              }}
+              className="flex items-center gap-3 px-4 py-2 text-[#ba1a1a] hover:bg-[#ffdad6]/40 rounded-lg text-[14px] transition-all text-left font-semibold"
             >
               <span className="material-symbols-outlined text-[20px]">logout</span>
               <span>Logout</span>
@@ -239,17 +241,15 @@ export default function AppShell({ page, onNavigate, children }) {
             className="flex items-center gap-3 mt-2 px-2 py-2 rounded-lg cursor-pointer hover:bg-[#eff4ff] transition-colors"
             title="View Profile Settings"
           >
-            <img
-              src={AVATAR_URL}
-              alt="Employee avatar"
-              className="w-10 h-10 rounded-full object-cover border border-[#bfc7d2]"
-            />
-            <div className="flex flex-col">
-              <span className="text-[14px] font-semibold text-[#191c1e]">
-                Alex Carter
+            <div className="w-10 h-10 rounded-full bg-[#004870] text-white flex items-center justify-center font-bold text-sm uppercase flex-shrink-0 shadow-sm">
+              {(user?.name || "Staff").charAt(0)}
+            </div>
+            <div className="flex flex-col overflow-hidden">
+              <span className="text-[14px] font-semibold text-[#191c1e] truncate">
+                {user?.name || "Staff Member"}
               </span>
-              <span className="text-[12px] text-[#40474f]">
-                Sr. Analyst
+              <span className="text-[12px] text-[#40474f] truncate">
+                {user?.roleTitle || "Staff"}
               </span>
             </div>
           </div>
