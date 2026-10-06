@@ -58,12 +58,13 @@ const inr = (n) =>
 export default function CheckoutPage() {
   const navigate = useNavigate();
   const { items, updateQty, clearCart } = useCart();
-  const { recordCustomerOrder, applyPromoCode } = useStore();
+  const { recordCustomerOrder, applyPromoCode, settings } = useStore();
   const { addNotification } = useNotifications();
 
   const [addresses, setAddresses] = useState(INITIAL_ADDRESSES);
   const [addressId, setAddressId] = useState("home");
   const [paymentId, setPaymentId] = useState("upi");
+  const [copiedUpi, setCopiedUpi] = useState(false);
   
   // Specific payment inputs
   const [upiId, setUpiId] = useState("harsh@okhdfcbank");
@@ -92,6 +93,12 @@ export default function CheckoutPage() {
   const subtotal = items.reduce((sum, it) => sum + it.price * it.qty, 0);
   const gst = subtotal * GST_RATE;
   const grandTotal = Math.max(0, subtotal + gst - couponDiscount);
+
+  const storeName = settings?.storeName || "Krishna General Store";
+  const storeUpiId = settings?.upiId || "krishnastore@upi";
+
+  const upiPayload = `upi://pay?pa=${encodeURIComponent(storeUpiId)}&pn=${encodeURIComponent(storeName)}&am=${grandTotal.toFixed(2)}&cu=INR&tn=${encodeURIComponent("Grocery Order Checkout")}`;
+  const upiQrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(upiPayload)}`;
 
   const handleApplyCoupon = (e) => {
     e?.preventDefault();
@@ -379,35 +386,85 @@ export default function CheckoutPage() {
                             <div className="mt-4 pt-4 border-t border-[#006194]/20 animate-in fade-in">
                               {/* UPI Interactive Panel */}
                               {method.id === "upi" && (
-                                <div className="space-y-3 bg-white p-4 rounded-xl border border-[#006194]/20">
-                                  <div className="flex flex-col sm:flex-row items-center gap-4">
-                                    {/* Simulated Dynamic UPI QR Code */}
-                                    <div className="p-2.5 bg-white border-2 border-dashed border-[#006194] rounded-xl text-center shadow-xs">
-                                      <div className="w-28 h-28 bg-[#f2f4f6] rounded-lg flex flex-col items-center justify-center relative overflow-hidden">
-                                        <span className="material-symbols-outlined text-4xl text-[#006194]">qr_code_2</span>
-                                        <span className="text-[9px] font-bold text-[#006194] mt-1">Scan to Pay</span>
-                                        <span className="text-[10px] font-bold text-black tabular-nums">{inr(grandTotal)}</span>
-                                      </div>
-                                      <span className="text-[9px] text-gray-500 block mt-1">krishnastore@upi</span>
-                                    </div>
-                                    <div className="flex-1 space-y-2 text-left w-full">
-                                      <label className="text-xs font-bold text-[#0b1c30] block">
-                                        Or Enter Customer UPI ID (VPA)
-                                      </label>
-                                      <div className="flex gap-2">
-                                        <input
-                                          type="text"
-                                          value={upiId}
-                                          onChange={(e) => setUpiId(e.target.value)}
-                                          placeholder="username@okaxis"
-                                          className="flex-1 border border-[#bfc7d2] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#006194]"
-                                        />
-                                        <span className="text-xs font-bold text-[#006a61] bg-[#6ffbbe]/20 px-2.5 py-2 rounded-lg flex items-center">
-                                          Verified ✓
+                                <div className="space-y-4 bg-white p-4 sm:p-5 rounded-xl border border-[#006194]/30 shadow-xs">
+                                  <div className="flex flex-col sm:flex-row items-center gap-5">
+                                    {/* Real Dynamic UPI QR Code */}
+                                    <div className="p-3 bg-white border-2 border-dashed border-[#006194] rounded-2xl text-center shadow-xs flex-shrink-0 flex flex-col items-center">
+                                      <img
+                                        src={upiQrUrl}
+                                        alt="UPI QR Code"
+                                        className="w-36 h-36 rounded-xl border border-[#006194]/30 p-1 bg-white object-contain"
+                                      />
+                                      <div className="mt-2 text-center">
+                                        <span className="text-[10px] uppercase font-bold text-[#006194] tracking-wider block">
+                                          Scan to Pay
+                                        </span>
+                                        <span className="text-sm font-extrabold text-[#0b1c30] tabular-nums">
+                                          {inr(grandTotal)}
                                         </span>
                                       </div>
+                                    </div>
+
+                                    {/* Account Holder & Payment Details */}
+                                    <div className="flex-1 space-y-3 text-left w-full">
+                                      <div className="p-3 bg-[#eff4ff] rounded-xl border border-[#006194]/20 space-y-1.5">
+                                        <div className="flex justify-between items-center text-xs">
+                                          <span className="text-[#565e74] font-medium">Account Holder:</span>
+                                          <span className="font-bold text-[#0b1c30]">{storeName}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs">
+                                          <span className="text-[#565e74] font-medium">Store UPI ID:</span>
+                                          <div className="flex items-center gap-1.5">
+                                            <span className="font-mono font-bold text-[#006194]">{storeUpiId}</span>
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                navigator.clipboard?.writeText(storeUpiId);
+                                                setCopiedUpi(true);
+                                                setTimeout(() => setCopiedUpi(false), 2000);
+                                              }}
+                                              className="text-[#006194] hover:underline text-[10px] font-bold cursor-pointer"
+                                            >
+                                              {copiedUpi ? "Copied!" : "Copy"}
+                                            </button>
+                                          </div>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs pt-1 border-t border-[#006194]/10">
+                                          <span className="text-[#565e74] font-medium">Bill Amount:</span>
+                                          <span className="font-black text-emerald-700 text-sm">{inr(grandTotal)}</span>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex flex-col sm:flex-row gap-2">
+                                        <a
+                                          href={upiPayload}
+                                          className="flex-1 bg-[#006194] hover:bg-[#007bb9] text-white py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 transition-colors shadow-xs"
+                                        >
+                                          <span className="material-symbols-outlined text-[16px]">open_in_new</span>
+                                          Pay via UPI App (GPay / PhonePe)
+                                        </a>
+                                      </div>
+
+                                      <div className="space-y-1">
+                                        <label className="text-xs font-bold text-[#0b1c30] block">
+                                          Or Enter Customer UPI ID (VPA)
+                                        </label>
+                                        <div className="flex gap-2">
+                                          <input
+                                            type="text"
+                                            value={upiId}
+                                            onChange={(e) => setUpiId(e.target.value)}
+                                            placeholder="username@okaxis"
+                                            className="flex-1 border border-[#bfc7d2] rounded-lg px-3 py-2 text-xs outline-none focus:ring-2 focus:ring-[#006194]"
+                                          />
+                                          <span className="text-xs font-bold text-[#006a61] bg-[#6ffbbe]/20 px-2.5 py-2 rounded-lg flex items-center">
+                                            Verified ✓
+                                          </span>
+                                        </div>
+                                      </div>
+
                                       <p className="text-[11px] text-[#707881]">
-                                        Compatible with Google Pay, PhonePe, Paytm, CRED & Amazon Pay.
+                                        Compatible with Google Pay, PhonePe, Paytm, CRED &amp; Amazon Pay.
                                       </p>
                                     </div>
                                   </div>
@@ -551,10 +608,14 @@ export default function CheckoutPage() {
                   <button
                     onClick={handlePlaceOrder}
                     disabled={status !== "idle"}
-                    className="w-full py-4 bg-[#006194] hover:bg-[#007bb9] text-white rounded-xl font-bold text-base transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60 active:scale-98"
+                    className="w-full py-4 bg-[#006194] hover:bg-[#007bb9] text-white rounded-xl font-bold text-base transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60 active:scale-98 cursor-pointer"
                   >
-                    <span>Confirm & Pay {inr(grandTotal)}</span>
-                    <span className="material-symbols-outlined text-[20px]">arrow_forward</span>
+                    <span>
+                      {paymentId === "upi" ? `Pay via UPI ${inr(grandTotal)}` : `Confirm & Pay ${inr(grandTotal)}`}
+                    </span>
+                    <span className="material-symbols-outlined text-[20px]">
+                      {paymentId === "upi" ? "qr_code_scanner" : "arrow_forward"}
+                    </span>
                   </button>
 
                   <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-around text-gray-400 text-center">

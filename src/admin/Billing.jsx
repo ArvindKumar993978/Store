@@ -56,6 +56,23 @@ export default function Billing() {
   const [paymentMode, setPaymentMode] = useState("UPI"); // "UPI" | "CASH" | "CREDIT"
   const [allowCreditOverride, setAllowCreditOverride] = useState(false);
 
+  // Dynamic UPI Payment states
+  const [showUpiModal, setShowUpiModal] = useState(false);
+  const [upiRefInput, setUpiRefInput] = useState("");
+  const [copiedUpi, setCopiedUpi] = useState(false);
+
+  const storeName = settings?.storeName || "Krishna General Store";
+  const storeUpiId = settings?.upiId || "krishnastore@upi";
+
+  const getUpiPayload = (amount, note = "POS Bill Payment") => {
+    return `upi://pay?pa=${encodeURIComponent(storeUpiId)}&pn=${encodeURIComponent(storeName)}&am=${Number(amount || 0).toFixed(2)}&cu=INR&tn=${encodeURIComponent(note)}`;
+  };
+
+  const getUpiQrUrl = (amount, note = "POS Bill Payment") => {
+    const payload = getUpiPayload(amount, note);
+    return `https://api.qrserver.com/v1/create-qr-code/?size=260x260&margin=8&data=${encodeURIComponent(payload)}`;
+  };
+
   // Modals state
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [newCustomerForm, setNewCustomerForm] = useState({ name: "", phone: "", creditLimit: "5000" });
@@ -264,7 +281,7 @@ export default function Billing() {
   };
 
   // Generate invoice & record sale to database
-  const handleGenerateInvoice = () => {
+  const handleGenerateInvoice = (customUpiRef = null) => {
     if (cart.length === 0) {
       alert("Cart is empty! Scan or add items to generate an invoice.");
       return;
@@ -286,6 +303,8 @@ export default function Billing() {
     }
 
     const invId = `INV-${Math.floor(10000 + Math.random() * 90000)}`;
+    const finalUpiRef = customUpiRef || (paymentMode === "UPI" ? `UPI-${Date.now().toString().slice(-6)}` : null);
+
     const newInvoice = {
       id: invId,
       date: new Date().toLocaleString("en-IN", {
@@ -298,6 +317,7 @@ export default function Billing() {
       customer: customer.name,
       phone: customer.phone,
       paymentMode,
+      upiRef: finalUpiRef,
       items: [...cart],
       subtotal: totals.subtotal,
       discount: Number(discount || 0),
@@ -309,6 +329,8 @@ export default function Billing() {
     // Save to centralized store and decrement stock
     recordPosSale(newInvoice);
     setGeneratedInvoice(newInvoice);
+    setShowUpiModal(false);
+    setUpiRefInput("");
     playPosBeep();
 
     // Automatically dispatch SMS bill if customer phone is provided
@@ -318,7 +340,7 @@ export default function Billing() {
         customerName: customer.name,
         phone: customer.phone,
         grandTotal: totals.grandTotal,
-        paymentMode,
+        paymentMode: paymentMode === "UPI" && finalUpiRef ? `UPI (${finalUpiRef})` : paymentMode,
         itemsCount: cart.length
       });
       showToast(`SMS Bill sent to ${customer.phone}!`);
@@ -773,12 +795,116 @@ export default function Billing() {
                 </div>
               )}
 
+              {/* Live Dynamic UPI QR Code Box */}
+              {paymentMode === "UPI" && (
+                <div className="p-3.5 bg-[#eff4ff] rounded-xl border border-[#006194]/30 space-y-2.5 animate-in fade-in">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-1.5 text-xs font-bold text-[#006194]">
+                      <span className="material-symbols-outlined text-[18px]">qr_code_2</span>
+                      <span>Live UPI Payment QR</span>
+                    </div>
+                    <span className="text-[10px] bg-[#6ffbbe] text-[#002113] font-bold px-2 py-0.5 rounded-full uppercase">
+                      Exact Amount
+                    </span>
+                  </div>
+
+                  {totals.grandTotal > 0 ? (
+                    <div className="flex flex-col items-center bg-white p-3 rounded-xl border border-[#bfc7d2]/40 text-center shadow-xs">
+                      {/* Scannable Dynamic QR Code */}
+                      <div
+                        className="relative group cursor-pointer"
+                        onClick={() => setShowUpiModal(true)}
+                        title="Click to view full screen QR"
+                      >
+                        <img
+                          src={getUpiQrUrl(totals.grandTotal, `Counter Bill ${customer.name}`)}
+                          alt="UPI QR Code"
+                          className="w-36 h-36 rounded-xl border-2 border-[#006194] p-1 bg-white object-contain shadow-xs"
+                        />
+                        <div className="absolute inset-0 bg-black/40 rounded-xl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-bold">
+                          <span className="material-symbols-outlined mr-1 text-[18px]">fullscreen</span>
+                          Fullscreen
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 w-full text-xs">
+                        <div className="flex justify-between items-center text-[#191c1e] font-bold pb-1 border-b border-gray-100">
+                          <span className="text-gray-500 font-normal">Account Holder:</span>
+                          <span className="truncate max-w-[160px] text-[#006194]">{storeName}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[#191c1e] font-bold py-1 border-b border-gray-100">
+                          <span className="text-gray-500 font-normal">Exact Bill:</span>
+                          <span className="text-emerald-700 text-sm font-extrabold">₹{totals.grandTotal.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[#3f4850] pt-1">
+                          <span className="text-gray-500 font-normal">UPI VPA:</span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-[11px] font-semibold">{storeUpiId}</span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                navigator.clipboard?.writeText(storeUpiId);
+                                setCopiedUpi(true);
+                                setTimeout(() => setCopiedUpi(false), 2000);
+                              }}
+                              className="text-[#006194] hover:underline text-[10px] font-bold cursor-pointer"
+                            >
+                              {copiedUpi ? "Copied!" : "Copy"}
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="mt-2.5 flex gap-1.5 w-full">
+                        <a
+                          href={getUpiPayload(totals.grandTotal, `Bill ${customer.name}`)}
+                          className="flex-1 bg-[#006194] hover:bg-[#007bb9] text-white py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 transition-colors"
+                        >
+                          <span className="material-symbols-outlined text-[14px]">open_in_new</span>
+                          Open UPI App
+                        </a>
+                        <button
+                          type="button"
+                          onClick={() => setShowUpiModal(true)}
+                          className="bg-gray-100 hover:bg-gray-200 text-[#191c1e] px-2.5 py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center transition-colors cursor-pointer"
+                          title="Open Full Screen Counter QR"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">fullscreen</span>
+                        </button>
+                      </div>
+
+                      <p className="text-[10px] text-gray-500 mt-2">
+                        Scan with GPay, PhonePe, Paytm, BHIM or any UPI App
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="text-xs text-[#707881] text-center py-2">
+                      Scan or add items to generate the live UPI payment QR code with the exact bill amount.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <button
-                onClick={handleGenerateInvoice}
+                onClick={() => {
+                  if (paymentMode === "UPI") {
+                    if (cart.length === 0) {
+                      alert("Cart is empty! Scan or add items to generate an invoice.");
+                      return;
+                    }
+                    setShowUpiModal(true);
+                  } else {
+                    handleGenerateInvoice();
+                  }
+                }}
                 className="w-full bg-[#006194] text-white py-3.5 rounded-xl text-base font-bold shadow-md hover:bg-[#007bb9] active:scale-[0.98] transition-all flex items-center justify-center gap-2 cursor-pointer"
               >
-                <span className="material-symbols-outlined text-[24px]">check_circle</span>
-                Generate Invoice
+                <span className="material-symbols-outlined text-[24px]">
+                  {paymentMode === "UPI" ? "qr_code_scanner" : "check_circle"}
+                </span>
+                {paymentMode === "UPI"
+                  ? `Collect UPI Payment (₹${totals.grandTotal.toFixed(2)})`
+                  : "Generate Invoice"}
               </button>
 
               <button
@@ -973,6 +1099,107 @@ export default function Billing() {
         </div>
       )}
 
+      {/* Dedicated Fullscreen Counter UPI Modal */}
+      {showUpiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 border border-[#bfc7d2] overflow-hidden text-center">
+            <div className="flex justify-between items-center pb-3 border-b border-gray-200 mb-4">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-[#006194] text-[24px]">qr_code_2</span>
+                <h3 className="font-extrabold text-lg text-[#191c1e]">UPI Counter Payment</h3>
+              </div>
+              <button
+                onClick={() => setShowUpiModal(false)}
+                className="text-gray-400 hover:text-black p-1 rounded-full cursor-pointer"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            {/* Account Holder & Amount Showcase */}
+            <div className="bg-[#eff4ff] p-4 rounded-2xl border border-[#006194]/20 mb-4 text-center">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-[#565e74]">Account Holder</p>
+              <h4 className="text-lg font-black text-[#006194] mt-0.5">{storeName}</h4>
+              <div className="flex items-center justify-center gap-1.5 mt-1 text-xs text-[#3f4850]">
+                <span>UPI ID:</span>
+                <span className="font-mono font-bold text-[#006194]">{storeUpiId}</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard?.writeText(storeUpiId);
+                    setCopiedUpi(true);
+                    setTimeout(() => setCopiedUpi(false), 2000);
+                  }}
+                  className="text-[#006194] text-[11px] underline ml-1 cursor-pointer font-semibold"
+                >
+                  {copiedUpi ? "Copied!" : "Copy"}
+                </button>
+              </div>
+
+              <div className="mt-3 pt-3 border-t border-[#006194]/20 flex items-baseline justify-center gap-2">
+                <span className="text-xs text-gray-500 font-semibold">Exact Payable:</span>
+                <span className="text-3xl font-black text-[#191c1e] tabular-nums">
+                  ₹{totals.grandTotal.toFixed(2)}
+                </span>
+              </div>
+            </div>
+
+            {/* Large Scannable QR Code */}
+            <div className="flex flex-col items-center justify-center p-4 bg-white rounded-2xl border-2 border-dashed border-[#006194] mb-4">
+              <img
+                src={getUpiQrUrl(totals.grandTotal, `Bill ${customer.name}`)}
+                alt="UPI QR Code"
+                className="w-56 h-56 object-contain rounded-xl p-1 bg-white shadow-sm"
+              />
+              <div className="mt-3 flex items-center gap-2">
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-ping" />
+                <span className="text-xs font-bold text-emerald-800">
+                  Scan &amp; Pay exact ₹{totals.grandTotal.toFixed(2)}
+                </span>
+              </div>
+              <p className="text-[11px] text-gray-500 mt-1">
+                Compatible with PhonePe, Google Pay, Paytm, BHIM, CRED
+              </p>
+            </div>
+
+            {/* Optional UTR / Reference Input */}
+            <div className="mb-4 text-left">
+              <label className="block text-xs font-bold text-[#3f4850] mb-1">
+                Customer UPI Ref / UTR No. (Optional):
+              </label>
+              <input
+                type="text"
+                value={upiRefInput}
+                onChange={(e) => setUpiRefInput(e.target.value)}
+                placeholder="e.g. 429381048201 or last 4 digits"
+                className="w-full px-3 py-2 border border-[#bfc7d2] rounded-xl text-xs outline-none focus:border-[#006194] font-mono"
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex flex-col sm:flex-row gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  handleGenerateInvoice(upiRefInput.trim() || `UPI-${Date.now().toString().slice(-6)}`);
+                }}
+                className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+              >
+                <span className="material-symbols-outlined text-[18px]">verified</span>
+                Payment Received &amp; Print Bill
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowUpiModal(false)}
+                className="py-3 px-4 bg-gray-100 hover:bg-gray-200 text-[#3f4850] rounded-xl text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Generated Printable Receipt Modal */}
       {generatedInvoice && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in">
@@ -994,6 +1221,12 @@ export default function Billing() {
                 <span>Customer: <strong>{generatedInvoice.customer}</strong></span>
                 <span>Mode: <strong className="uppercase">{generatedInvoice.paymentMode}</strong></span>
               </div>
+              {generatedInvoice.paymentMode === "UPI" && (
+                <div className="mt-2 py-1.5 px-3 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-md border border-emerald-200 flex justify-between items-center">
+                  <span>✓ PAID VIA UPI ({generatedInvoice.upiRef || "VERIFIED"})</span>
+                  <span className="font-mono text-[11px]">{storeUpiId}</span>
+                </div>
+              )}
               {generatedInvoice.paymentMode === "CREDIT" && (
                 <div className="mt-2 py-1 px-2 bg-amber-50 text-amber-800 text-xs font-extrabold rounded-md border border-amber-200">
                   ⚠️ BILLED ON UDHAR KHATA (PAYMENT DUE)

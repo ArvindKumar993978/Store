@@ -541,6 +541,11 @@ export default function OrderHistoryPage() {
                   <span className="text-xs font-bold text-[#006194] mt-1 block">
                     {selectedOrder.paymentMethod || "UPI"} ({selectedOrder.paymentStatus || "Paid"})
                   </span>
+                  {selectedOrder.transactionId && (
+                    <span className="text-[10px] text-gray-500 font-mono block mt-0.5">
+                      Ref: {selectedOrder.transactionId}
+                    </span>
+                  )}
                 </div>
               </div>
 
