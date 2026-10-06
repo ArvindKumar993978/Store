@@ -284,7 +284,7 @@ export default function KhataBook() {
       <Sidebar />
       <Topnav />
 
-      <main className="ml-[240px] pt-6 min-h-screen p-6">
+      <main className="md:ml-60 ml-0 pt-6 min-h-screen p-4 sm:p-6 transition-all duration-300">
         <div className="max-w-7xl mx-auto space-y-8">
           {/* Header & Page Title */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

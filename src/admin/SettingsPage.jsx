@@ -133,7 +133,7 @@ export default function SettingsPage() {
 
       <Sidebar />
 
-      <main className="ml-[280px] min-h-screen p-8">
+      <main className="md:ml-60 ml-0 min-h-screen p-4 sm:p-8 transition-all duration-300">
         <SettingsTopNav />
         <input
           ref={fileInputRef}

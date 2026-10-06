@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import PosTopNav from "../component/PosTopNav";
 import { useStore } from "../context/StoreContext";
+import { sendPosInvoiceSMS } from "../services/smsService";
 
 /*
   POS Billing Terminal (Advanced Retail Edition)
@@ -309,12 +310,39 @@ export default function Billing() {
     recordPosSale(newInvoice);
     setGeneratedInvoice(newInvoice);
     playPosBeep();
+
+    // Automatically dispatch SMS bill if customer phone is provided
+    if (customer.phone && customer.phone !== "N/A") {
+      sendPosInvoiceSMS({
+        invoiceId: invId,
+        customerName: customer.name,
+        phone: customer.phone,
+        grandTotal: totals.grandTotal,
+        paymentMode,
+        itemsCount: cart.length
+      });
+      showToast(`SMS Bill sent to ${customer.phone}!`);
+    }
   };
 
   const completeAndNewSale = () => {
     setGeneratedInvoice(null);
     clearCart();
     setCustomer({ name: "Walk-in Customer", phone: "", points: 0, outstanding: "₹0", creditLimit: 5000 });
+  };
+
+  // Manual SMS invoice sharing
+  const handleSendInvoiceSMS = () => {
+    if (!generatedInvoice) return;
+    sendPosInvoiceSMS({
+      invoiceId: generatedInvoice.id,
+      customerName: generatedInvoice.customer,
+      phone: generatedInvoice.phone || "+91 98765 43210",
+      grandTotal: generatedInvoice.grandTotal,
+      paymentMode: generatedInvoice.paymentMode,
+      itemsCount: generatedInvoice.items.length
+    });
+    showToast(`SMS Bill dispatched to ${generatedInvoice.phone || "customer"}!`);
   };
 
   // WhatsApp invoice sharing
@@ -364,7 +392,7 @@ export default function Billing() {
       <Sidebar />
       <PosTopNav />
 
-      <main className="ml-60 flex flex-col lg:flex-row gap-6 p-6">
+      <main className="md:ml-60 ml-0 flex flex-col lg:flex-row gap-6 p-4 sm:p-6 transition-all duration-300">
         {/* Left: Cart area */}
         <section className="flex-1 flex flex-col gap-6 min-w-0">
           {/* Search / scan bar */}
@@ -1018,7 +1046,7 @@ export default function Billing() {
             </div>
 
             {/* Modal Actions */}
-            <div className="grid grid-cols-3 gap-2 pt-6 border-t mt-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-6 border-t mt-4">
               <button
                 onClick={() => window.print()}
                 className="py-2.5 bg-gray-100 hover:bg-gray-200 text-[#191c1e] rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
@@ -1032,6 +1060,13 @@ export default function Billing() {
               >
                 <span className="material-symbols-outlined text-[18px]">chat</span>
                 WhatsApp
+              </button>
+              <button
+                onClick={handleSendInvoiceSMS}
+                className="py-2.5 bg-[#eff4ff] hover:bg-[#dce9ff] text-[#006194] border border-[#006194]/30 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer shadow-xs"
+              >
+                <span className="material-symbols-outlined text-[18px]">sms</span>
+                Send SMS
               </button>
               <button
                 onClick={completeAndNewSale}

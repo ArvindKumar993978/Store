@@ -100,7 +100,7 @@ export default function SubscriptionPlans() {
       <SubscriptionTopNav />
 
       {/* Main Content Canvas */}
-      <main className="ml-60 p-8 max-w-7xl">
+      <main className="md:ml-60 ml-0 p-4 sm:p-8 max-w-7xl transition-all duration-300">
         {/* Subscription Header Section */}
         <div className="mb-8 flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white p-6 rounded-xl shadow-sm border border-[#bfc7d2]">
           <div>

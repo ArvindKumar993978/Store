@@ -32,13 +32,17 @@ import ShopNowPage from "./customer/ShopNowPage.jsx";
 import ViewOffersPage from "./customer/ViewOffersPage.jsx";
 import Employee from "./staff/employedashboard/Employe.jsx";
 import EmployeeHandler from "./staff/employehandler/EmployeHandler.jsx";
+import SmsNotificationBanner from "./component/SmsNotificationBanner.jsx";
+import { NotificationProvider } from "./context/NotificationContext.jsx";
 
 function App() {
   return (
     <AuthProvider>
-      <StoreProvider>
-        <CartProvider>
-          <Routes>
+      <NotificationProvider>
+        <StoreProvider>
+          <CartProvider>
+            <SmsNotificationBanner />
+            <Routes>
             {/* Public Portal & Auth Routes */}
             <Route path="/" element={<Entrance />} />
             <Route path="/login" element={<LoginPage />} />
@@ -52,6 +56,7 @@ function App() {
             <Route path="/billing" element={<Billing />} />
             <Route path="/khata" element={<KhataBook />} />
             <Route path="/customers" element={<Customer />} />
+            <Route path="/customer" element={<Customer />} />
             <Route path="/customer-report" element={<CustomerReport />} />
             <Route path="/customer-profile" element={<CustomerProfilePage />} />
             <Route path="/reports" element={<Reports />} />
@@ -78,7 +83,8 @@ function App() {
           </Routes>
         </CartProvider>
       </StoreProvider>
-    </AuthProvider>
+    </NotificationProvider>
+  </AuthProvider>
   );
 }
 

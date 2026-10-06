@@ -1,8 +1,9 @@
-import React, { useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Sidebar from "../component/Sidebar";
 import Topnav from "../component/Topnav";
 import { useStore } from "../context/StoreContext";
+import { sendOrderStatusUpdateSMS } from "../services/smsService";
 
 const STATUS_STYLES = {
   Paid: { bg: "#86f2e4", text: "#006f66" },
@@ -19,7 +20,14 @@ const QUICK_ACTIONS = [
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
-  const { storeMetrics, sales, orders, products } = useStore();
+  const { storeMetrics, sales, orders, products, updateOrderStatus } = useStore();
+  const [selectedTx, setSelectedTx] = useState(null);
+  const [toastMsg, setToastMsg] = useState("");
+
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(""), 3000);
+  };
 
   const dynamicStats = useMemo(() => {
     return [
@@ -65,6 +73,8 @@ export default function AdminDashboard() {
   const recentTransactions = useMemo(() => {
     const combined = [
       ...(sales || []).map((s) => ({
+        ...s,
+        isOnlineOrder: false,
         date: s.date || "Today",
         id: s.id,
         customer: s.customer || "Walk-in Customer",
@@ -72,14 +82,16 @@ export default function AdminDashboard() {
         status: s.status || "Paid",
       })),
       ...(orders || []).map((o) => ({
+        ...o,
+        isOnlineOrder: true,
         date: o.date ? new Date(o.date).toLocaleDateString("en-IN", { month: "short", day: "numeric", year: "numeric" }) : "Today",
         id: o.id,
-        customer: o.customer || (o.shippingAddress ? o.shippingAddress.split(",")[0] : "Online Customer"),
+        customer: o.customerName || o.customer || (o.shippingAddress ? String(o.shippingAddress).split(",")[0] : "Online Customer"),
         amount: `₹${Number(o.total || 0).toFixed(2)}`,
-        status: o.status === "Delivered" ? "Paid" : o.status || "Pending",
+        status: o.status || "Pending",
       })),
     ];
-    return combined.slice(0, 5);
+    return combined.slice(0, 8);
   }, [sales, orders]);
 
   const dynamicLowStock = useMemo(() => {
@@ -163,7 +175,7 @@ export default function AdminDashboard() {
       <Topnav />
 
       {/* ---------- Main Content ---------- */}
-      <main className="ml-60 p-6 min-h-screen">
+      <main className="md:ml-60 ml-0 p-4 sm:p-6 min-h-screen transition-all duration-300">
         {/* Summary cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {dynamicStats.map((stat) => (
@@ -252,13 +264,23 @@ export default function AdminDashboard() {
                     return (
                       <tr
                         key={tx.id}
-                        onClick={() => navigate("/sales")}
+                        onClick={() => setSelectedTx(tx)}
                         className="hover:bg-[#eff4ff] transition-colors cursor-pointer"
+                        title="Click to view details and update order status"
                       >
                         <td className="px-6 py-4 text-sm">{tx.date}</td>
-                        <td className="px-6 py-4 text-base text-[#006194] font-bold">{tx.id}</td>
+                        <td className="px-6 py-4 text-base text-[#006194] font-bold">
+                          <span className="flex items-center gap-1.5">
+                            {tx.id}
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-semibold ${
+                              tx.isOnlineOrder ? "bg-[#cce5ff] text-[#004b73]" : "bg-gray-100 text-gray-600"
+                            }`}>
+                              {tx.isOnlineOrder ? "Online" : "POS"}
+                            </span>
+                          </span>
+                        </td>
                         <td className="px-6 py-4 text-sm font-medium">{tx.customer}</td>
-                        <td className="px-6 py-4 text-base text-right">{tx.amount}</td>
+                        <td className="px-6 py-4 text-base text-right font-semibold">{tx.amount}</td>
                         <td className="px-6 py-4 text-center">
                           <span
                             className="px-4 py-1 rounded-full text-[12px] font-semibold"
@@ -368,6 +390,134 @@ export default function AdminDashboard() {
             </div>
           </div>
         </div>
+
+        {/* Transaction / Order Inspector Modal */}
+        {selectedTx && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto border border-[#bfc7d2] animate-in zoom-in-95 duration-200">
+              <div className="p-5 border-b border-[#bfc7d2]/30 flex items-center justify-between bg-[#f8f9ff] rounded-t-2xl">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-bold text-[#0b1c30]">
+                      {selectedTx.isOnlineOrder ? `Customer Order #${selectedTx.id}` : `POS Invoice #${selectedTx.id}`}
+                    </h3>
+                    <span className={`text-[10px] px-2 py-0.5 rounded-full font-bold ${
+                      selectedTx.isOnlineOrder ? "bg-[#cce5ff] text-[#004b73]" : "bg-emerald-100 text-emerald-800"
+                    }`}>
+                      {selectedTx.isOnlineOrder ? "Online Delivery" : "Store Counter"}
+                    </span>
+                  </div>
+                  <p className="text-xs text-[#707881] mt-0.5">{selectedTx.date}</p>
+                </div>
+                <button
+                  onClick={() => setSelectedTx(null)}
+                  className="p-1.5 text-gray-500 hover:text-black hover:bg-gray-100 rounded-full transition-colors"
+                >
+                  <span className="material-symbols-outlined text-[20px]">close</span>
+                </button>
+              </div>
+
+              <div className="p-5 space-y-4 text-xs">
+                {/* Status bar */}
+                <div className="flex items-center justify-between p-3 bg-[#f8f9ff] rounded-xl border border-[#bfc7d2]/30">
+                  <div>
+                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider block">Status</span>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-bold mt-1 ${
+                      STATUS_STYLES[selectedTx.status] || "bg-gray-100 text-gray-800"
+                    }`}>
+                      {selectedTx.status}
+                    </span>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10px] text-gray-500 uppercase font-bold tracking-wider block">Total Amount</span>
+                    <span className="text-base font-bold text-[#006194] mt-0.5 block">{selectedTx.amount}</span>
+                  </div>
+                </div>
+
+                {/* Customer Details */}
+                <div className="p-3 bg-white rounded-xl border border-gray-200 space-y-1">
+                  <p className="font-bold text-[#0b1c30]">Customer: {selectedTx.customer}</p>
+                  {selectedTx.phone && (
+                    <p className="text-gray-500 flex items-center gap-1">
+                      <span className="material-symbols-outlined text-[14px]">phone</span>
+                      {selectedTx.phone}
+                    </p>
+                  )}
+                  {selectedTx.shippingAddress && (
+                    <p className="text-gray-500 flex items-start gap-1">
+                      <span className="material-symbols-outlined text-[14px] mt-0.5">location_on</span>
+                      {typeof selectedTx.shippingAddress === "string" ? selectedTx.shippingAddress : "Delivery Address"}
+                    </p>
+                  )}
+                </div>
+
+                {/* Items */}
+                {selectedTx.items && selectedTx.items.length > 0 && (
+                  <div>
+                    <h4 className="font-bold uppercase tracking-wider text-gray-500 mb-2">Order Items</h4>
+                    <div className="space-y-2 max-h-36 overflow-y-auto pr-1">
+                      {selectedTx.items.map((it, idx) => (
+                        <div key={idx} className="flex justify-between p-2 bg-gray-50 rounded-lg">
+                          <span>{it.name} × {it.qty || 1}</span>
+                          <span className="font-semibold tabular-nums">₹{((it.price || 0) * (it.qty || 1)).toFixed(2)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Online Order Status Changer (Admin controls) */}
+                {selectedTx.isOnlineOrder && (
+                  <div className="pt-2 border-t border-gray-100 space-y-2">
+                    <h4 className="font-bold text-[#0b1c30]">Update Order Status & Dispatch SMS</h4>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                      {["Packed", "In Transit", "Delivered", "Cancelled"].map((st) => (
+                        <button
+                          key={st}
+                          onClick={() => {
+                            updateOrderStatus(selectedTx.id, st);
+                            setSelectedTx((prev) => ({ ...prev, status: st }));
+                            sendOrderStatusUpdateSMS({
+                              orderId: selectedTx.id,
+                              customerName: selectedTx.customer,
+                              phone: selectedTx.phone || "+91 98765 43210",
+                              status: st
+                            });
+                            showToast(`Status updated to "${st}" & SMS dispatched!`);
+                          }}
+                          className={`py-2 px-2 rounded-xl text-xs font-bold transition-all ${
+                            selectedTx.status === st
+                              ? "bg-[#006194] text-white shadow-sm"
+                              : "bg-[#f2f4f6] text-[#3f4850] hover:bg-[#e0e3e5]"
+                          }`}
+                        >
+                          {st}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div className="p-4 bg-[#f8f9ff] border-t border-[#bfc7d2]/30 flex justify-end gap-2 rounded-b-2xl">
+                <button
+                  onClick={() => setSelectedTx(null)}
+                  className="px-4 py-2 bg-gray-200 text-gray-800 text-xs font-bold rounded-xl hover:bg-gray-300 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Floating Toast */}
+        {toastMsg && (
+          <div className="fixed bottom-6 right-6 bg-[#006194] text-white px-5 py-3 rounded-2xl shadow-2xl z-50 text-xs font-bold flex items-center gap-2 animate-in fade-in">
+            <span className="material-symbols-outlined text-[18px]">check_circle</span>
+            {toastMsg}
+          </div>
+        )}
       </main>
     </div>
   );

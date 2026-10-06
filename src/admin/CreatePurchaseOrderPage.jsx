@@ -129,7 +129,7 @@ export default function CreatePurchaseOrderPage() {
 
       <Sidebar />
 
-      <main className="ml-[240px] min-h-screen p-6 bg-[#f7f9fb]">
+      <main className="md:ml-60 ml-0 min-h-screen p-4 sm:p-6 bg-[#f7f9fb] transition-all duration-300">
         {/* Header & breadcrumbs */}
         <header className="mb-8">
           <div className="flex items-center gap-2 text-xs text-[#565e74] mb-2">

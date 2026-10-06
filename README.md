@@ -61,18 +61,31 @@ The application features a unified multi-portal gateway with direct access and r
 - **Staff Handler & Attendance Tracker (`/staff-handler`)**: Operational console to log daily clock-in records, mark Present/Late/Absent, and monitor attendance metrics.
 - **Admin Staff Management (`/staff-management`)**: Add new employees, modify roles (Store Manager, Cashier, Inventory Clerk), toggle active status, and synchronize changes directly to Cloud Firestore.
 
-### 5. 🛒 Customer Storefront & Online Ordering
+### 5. 🛒 Customer Storefront, Ordering & Payment Gateway
 - **Interactive Grocery Catalog**: Browse staples, personal care, dairy, beverages, and snacks with intuitive filters.
-- **Instant Search & Sorting**: High-performance client-side search by item name, SKU, or category.
-- **Shopping Cart & Checkout**: Persistent cart storage, promo code application, delivery address entry, and order submission.
-- **Customer Account & History**: View previous order states (*Pending*, *Confirmed*, *In Transit*, *Delivered*).
+- **Multi-Mode Payment System**: Seamless checkout supporting **UPI QR Code** (auto-generated dynamic UPI payment URL & QR), **UPI VPA ID** verification, **Credit / Debit Cards**, **Cash on Delivery (COD)**, and **Net Banking**.
+- **Interactive Order Confirmation Modal**: Displays order receipt with payment method details, itemized breakdown, and 1-click navigation to orders.
+- **Live Order History & Delivery Tracking**: Visual order timeline tracking (`Placed` ➔ `Packed` ➔ `In Transit` ➔ `Delivered`), printable tax invoices, order cancellation, and 1-click reorder.
+- **Delivery Address Management**: Complete customer contact and shipping address details formatted dynamically.
 
-### 6. 📊 Analytics, Reports & Data Export
+### 6. 📩 SMS Dispatch Engine & Live Alerts Center
+- **Automated SMS Triggers**: Instant dispatch of order confirmations, payment receipts, POS counter bills, and status change alerts.
+- **Slide-in Notification Banners**: Real-time pop-up notification toasts with WebAudio arrival sound chime.
+- **Interactive SMS Message Center**: Modal to review incoming messages with direct WhatsApp and native SMS action links.
+- **Admin POS Billing SMS**: Instant SMS receipt dispatched directly to customer phone numbers upon invoice creation.
+- **Live Status SMS Dispatch**: Admin status updates (`Pending`, `Packed`, `In Transit`, `Delivered`, `Cancelled`) trigger automated customer SMS notifications.
+
+### 7. 🔔 Centralized In-App Notifications
+- **Global Notification Hub**: Badge counters for unread alerts embedded across Storefront Navbar and Admin TopNav.
+- **Actionable Notification Center**: Mark notifications as read, navigate directly to related screens, or clear all in one click.
+
+### 8. 📊 Analytics, Reports & Data Export
 - **Sales & Revenue KPIs**: Track daily, weekly, and monthly gross revenue and average order value.
 - **Category Profit Margins**: Automated margin calculation and cost breakdown.
 - **Data Portability**: Full JSON and CSV export/import for catalog backups, audit reports, and ledger archives.
 
-### 7. 📱 Progressive Web App (PWA)
+### 9. 📱 Progressive Web App (PWA) & Responsive Design
+- **100% Mobile & Tablet Responsive**: Optimized navigation bars, mobile drawer sidebars, and fluid layouts without horizontal scrollbars.
 - **Installable Native Experience**: Install directly on Android, iOS, Windows, and macOS desktops and mobile devices.
 - **Tailored Branding**: Brand icons (192px and 512px), launcher theme color `#006194`, and standalone display mode.
 

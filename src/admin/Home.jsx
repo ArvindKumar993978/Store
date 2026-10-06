@@ -217,7 +217,7 @@ export default function iAdminDashboard() {
       </aside>
 
       {/* ---------- Top Nav ---------- */}
-      <header className="flex justify-between items-center h-16 px-6 sticky top-0 z-40 ml-60 bg-[#f8f9ff] border-b border-[#bfc7d2] shadow-sm">
+      <header className="flex justify-between items-center h-16 px-4 sm:px-6 sticky top-0 z-40 md:ml-60 ml-0 bg-[#f8f9ff] border-b border-[#bfc7d2] shadow-sm transition-all duration-300">
         <div className="flex items-center flex-1 max-w-xl">
           <div className="relative w-full">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[#3f4850]">search</span>
@@ -245,7 +245,7 @@ export default function iAdminDashboard() {
       </header>
 
       {/* ---------- Main Content ---------- */}
-      <main className="ml-60 p-6 min-h-screen">
+      <main className="md:ml-60 ml-0 p-4 sm:p-6 min-h-screen transition-all duration-300">
         {/* Summary cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {STATS.map((stat) => (

@@ -13,9 +13,18 @@ export default function SettingsTopNav() {
 
   return (
     <header className="mb-8 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-      <div>
-        <h2 className="text-[32px] font-bold text-[#191c1e]">Settings</h2>
-        <p className="text-sm text-[#3f4850]">Manage your business profile and workspace preferences.</p>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("krishna_toggle_sidebar"))}
+          className="md:hidden p-2 text-[#3f4850] hover:text-[#006194] hover:bg-[#eff4ff] rounded-lg transition-colors flex-shrink-0"
+          title="Open Menu"
+        >
+          <span className="material-symbols-outlined">menu</span>
+        </button>
+        <div>
+          <h2 className="text-2xl sm:text-[32px] font-bold text-[#191c1e]">Settings</h2>
+          <p className="text-xs sm:text-sm text-[#3f4850]">Manage your business profile and workspace preferences.</p>
+        </div>
       </div>
       <div className="flex items-center gap-4">
         <div className="relative">

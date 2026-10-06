@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavLink } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
@@ -70,20 +70,56 @@ const STORE_SUBTITLE = "Inventory Admin";
 export default function Sidebar() {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    const handleToggle = () => setMobileOpen((prev) => !prev);
+    const handleClose = () => setMobileOpen(false);
+    window.addEventListener("krishna_toggle_sidebar", handleToggle);
+    window.addEventListener("krishna_close_sidebar", handleClose);
+    return () => {
+      window.removeEventListener("krishna_toggle_sidebar", handleToggle);
+      window.removeEventListener("krishna_close_sidebar", handleClose);
+    };
+  }, []);
 
   return (
-    <aside className="fixed left-0 top-0 h-screen w-60 bg-[#f8f9ff] border-r border-[#bfc7d2] flex flex-col py-6 px-4 z-50">
-      <div 
-        onClick={() => navigate("/")}
-        className="mb-8 px-2 cursor-pointer hover:opacity-80 transition-opacity"
-        title="Return to Main Portal"
+    <>
+      {/* Mobile Backdrop */}
+      {mobileOpen && (
+        <div
+          onClick={() => setMobileOpen(false)}
+          className="fixed inset-0 bg-black/50 backdrop-blur-xs z-40 md:hidden animate-in fade-in"
+        />
+      )}
+
+      <aside
+        className={`fixed left-0 top-0 h-screen w-60 bg-[#f8f9ff] border-r border-[#bfc7d2] flex flex-col py-6 px-4 z-50 transition-transform duration-300 ease-in-out ${
+          mobileOpen ? "translate-x-0 shadow-2xl" : "-translate-x-full md:translate-x-0"
+        }`}
       >
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-[#006194]">storefront</span>
-          <h1 className="text-[20px] font-bold text-[#006194]">{STORE_NAME}</h1>
+        <div className="flex items-center justify-between mb-6 px-2">
+          <div 
+            onClick={() => {
+              setMobileOpen(false);
+              navigate("/");
+            }}
+            className="cursor-pointer hover:opacity-80 transition-opacity"
+            title="Return to Main Portal"
+          >
+            <div className="flex items-center gap-2">
+              <span className="material-symbols-outlined text-[#006194]">storefront</span>
+              <h1 className="text-[20px] font-bold text-[#006194]">{STORE_NAME}</h1>
+            </div>
+            <p className="text-[#3f4850] text-sm opacity-70">{STORE_SUBTITLE}</p>
+          </div>
+          <button
+            onClick={() => setMobileOpen(false)}
+            className="md:hidden p-1 text-gray-500 hover:text-black rounded-lg"
+          >
+            <span className="material-symbols-outlined">close</span>
+          </button>
         </div>
-        <p className="text-[#3f4850] text-sm opacity-70">{STORE_SUBTITLE}</p>
-      </div>
 
       <button 
         onClick={() => navigate("/billing")}
@@ -144,5 +180,6 @@ export default function Sidebar() {
         </div>
       </div>
     </aside>
+    </>
   );
 }

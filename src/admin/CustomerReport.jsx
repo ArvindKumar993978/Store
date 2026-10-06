@@ -125,13 +125,13 @@ export default function CustomerReport() {
 
       <Sidebar />
 
-      <main className="flex-1 ml-[280px] p-6 relative">
+      <main className="flex-1 md:ml-60 ml-0 p-4 sm:p-6 relative transition-all duration-300">
         {/* Header */}
         <header className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
             <nav className="flex items-center gap-2 text-[#3f4850] text-xs font-semibold mb-2">
               <button
-                onClick={() => navigate("/customer")}
+                onClick={() => navigate("/customers")}
                 className="hover:text-[#006194] hover:underline cursor-pointer"
               >
                 Customers
