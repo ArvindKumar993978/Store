@@ -358,6 +358,50 @@ const INITIAL_STAFF_LIST = [
   { id: 4, name: "Sanya Malhotra", email: "sanya.m@krishnastore.in", role: "Cashier", status: "Active", lastLogin: "Today, 08:30 AM" }
 ];
 
+const INITIAL_ORDERS = [
+  {
+    id: "ORD-9412",
+    transactionId: "TXN-882190",
+    date: new Date(Date.now() - 3600000 * 5).toISOString(),
+    customerName: "Arvind Kumar",
+    shippingAddress: "Flat 402, Green Valley Apartments, Bengaluru, Karnataka - 560102, Phone: 9939780000",
+    address: "Flat 402, Green Valley Apartments, Bengaluru",
+    phone: "9939780000",
+    items: [
+      { id: 1, name: "Whole Milk - 1L", price: 45, qty: 2, image: INITIAL_PRODUCTS[0].image },
+      { id: 2, name: "Honey Loops Cereal", price: 185, qty: 1, image: INITIAL_PRODUCTS[1].image }
+    ],
+    subtotal: 275,
+    discount: 0,
+    promoCode: null,
+    gst: 13.75,
+    total: 288.75,
+    status: "In Transit",
+    paymentMethod: "UPI (Paid)",
+    paymentStatus: "Paid"
+  },
+  {
+    id: "ORD-8931",
+    transactionId: "TXN-773412",
+    date: new Date(Date.now() - 86400000 * 2).toISOString(),
+    customerName: "Priya Sharma",
+    shippingAddress: "B-12, Sector 5, HSR Layout, Bengaluru - 560102, Phone: 9811223344",
+    address: "B-12, Sector 5, HSR Layout, Bengaluru",
+    phone: "9811223344",
+    items: [
+      { id: 3, name: "Luxury Aloe Soap", price: 65, qty: 4, image: INITIAL_PRODUCTS[2]?.image || "" }
+    ],
+    subtotal: 260,
+    discount: 20,
+    promoCode: "FRESH20",
+    gst: 12.0,
+    total: 252.0,
+    status: "Delivered",
+    paymentMethod: "UPI (Paid)",
+    paymentStatus: "Paid"
+  }
+];
+
 const StoreContext = createContext(null);
 
 export function StoreProvider({ children }) {
@@ -370,7 +414,7 @@ export function StoreProvider({ children }) {
         return {
           products: parsed.products || INITIAL_PRODUCTS,
           sales: parsed.sales || INITIAL_SALES,
-          orders: parsed.orders || [],
+          orders: parsed.orders && parsed.orders.length > 0 ? parsed.orders : INITIAL_ORDERS,
           customers: parsed.customers && parsed.customers.length > 0 ? parsed.customers : INITIAL_CUSTOMERS_LIST,
           purchases: parsed.purchases && parsed.purchases.length > 0 ? parsed.purchases : INITIAL_PURCHASES,
           settings: { ...DEFAULT_SETTINGS, ...(parsed.settings || {}) },
@@ -384,26 +428,7 @@ export function StoreProvider({ children }) {
     return {
       products: INITIAL_PRODUCTS,
       sales: INITIAL_SALES,
-      orders: [
-        {
-          id: "ORD-9412",
-          date: new Date(Date.now() - 3600000 * 5).toISOString(),
-          customerName: "Arvind Kumar",
-          address: "Flat 402, Green Valley Apartments, Bengaluru",
-          phone: "9939780000",
-          items: [
-            { id: 1, name: "Whole Milk - 1L", price: 45, qty: 2, image: INITIAL_PRODUCTS[0].image },
-            { id: 2, name: "Honey Loops Cereal", price: 185, qty: 1, image: INITIAL_PRODUCTS[1].image }
-          ],
-          subtotal: 275,
-          discount: 0,
-          promoCode: null,
-          gst: 13.75,
-          total: 288.75,
-          status: "In Transit",
-          paymentMethod: "upi"
-        }
-      ],
+      orders: INITIAL_ORDERS,
       customers: INITIAL_CUSTOMERS_LIST,
       purchases: INITIAL_PURCHASES,
       settings: DEFAULT_SETTINGS,
@@ -429,7 +454,8 @@ export function StoreProvider({ children }) {
       khataLedger: INITIAL_KHATA_LEDGER,
       sales: INITIAL_SALES,
       settings: DEFAULT_SETTINGS,
-      staff: INITIAL_STAFF_LIST
+      staff: INITIAL_STAFF_LIST,
+      orders: INITIAL_ORDERS
     });
 
     const unsubProducts = subscribeToProducts((cloudProducts) => {
@@ -445,7 +471,13 @@ export function StoreProvider({ children }) {
     });
 
     const unsubOrders = subscribeToOrders((cloudOrders) => {
-      setData((prev) => ({ ...prev, orders: cloudOrders }));
+      if (cloudOrders && cloudOrders.length > 0) {
+        setData((prev) => {
+          const cloudIds = new Set(cloudOrders.map((o) => o.id));
+          const localOnly = (prev.orders || []).filter((o) => !cloudIds.has(o.id));
+          return { ...prev, orders: [...cloudOrders, ...localOnly] };
+        });
+      }
     });
 
     const unsubCustomers = subscribeToCustomers((cloudCustomers) => {
@@ -670,28 +702,36 @@ export function StoreProvider({ children }) {
 
   // Online Customer Order Placement
   const recordCustomerOrder = (orderInfo) => {
+    const generatedId = orderInfo.id || `ORD-${Math.floor(10000 + Math.random() * 90000)}`;
     const newOrder = {
-      id: `ORD-${Math.floor(1000 + Math.random() * 9000)}`,
-      date: new Date().toISOString(),
+      id: generatedId,
+      transactionId: orderInfo.transactionId || `TXN-${Date.now().toString().slice(-6)}`,
+      date: orderInfo.date || new Date().toISOString(),
       customerName: orderInfo.customerName || "Customer",
-      address: orderInfo.address || "Main Market, Bengaluru",
+      shippingAddress: orderInfo.shippingAddress || orderInfo.address || "Main Market, Bengaluru",
+      address: orderInfo.shippingAddress || orderInfo.address || "Main Market, Bengaluru",
       phone: orderInfo.phone || "N/A",
-      items: orderInfo.items,
-      subtotal: orderInfo.subtotal,
-      discount: orderInfo.discount || 0,
+      items: orderInfo.items || [],
+      subtotal: Number(orderInfo.subtotal || 0),
+      discount: Number(orderInfo.discount || 0),
       promoCode: orderInfo.promoCode || null,
-      gst: orderInfo.gst,
-      total: orderInfo.total,
-      status: "Pending", // Pending -> Packed -> In Transit -> Delivered
-      paymentMethod: orderInfo.paymentMethod || "upi"
+      gst: Number(orderInfo.gst || 0),
+      total: Number(orderInfo.total || 0),
+      status: orderInfo.status || "Pending", // Pending -> Packed -> In Transit -> Delivered
+      paymentMethod: orderInfo.paymentMethod || "UPI",
+      paymentStatus: orderInfo.paymentStatus || (orderInfo.paymentMethod === "COD" ? "Pending" : "Paid"),
+      createdAt: new Date().toISOString()
     };
 
-    decrementStock(orderInfo.items);
+    decrementStock(orderInfo.items || []);
 
-    setData((prev) => ({
-      ...prev,
-      orders: [newOrder, ...prev.orders]
-    }));
+    setData((prev) => {
+      const existing = (prev.orders || []).filter((o) => o.id !== newOrder.id);
+      return {
+        ...prev,
+        orders: [newOrder, ...existing]
+      };
+    });
 
     saveOrderToDb(newOrder);
     return newOrder;

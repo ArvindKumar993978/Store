@@ -28,6 +28,25 @@ import {
   - Store metadata & tax settings
 */
 
+// Helper to strip undefined values so Firestore does not reject writes
+export function sanitizeForFirestore(obj) {
+  if (!obj || typeof obj !== "object") return obj;
+  const clean = {};
+  Object.keys(obj).forEach((key) => {
+    const val = obj[key];
+    if (val === undefined) {
+      clean[key] = null;
+    } else if (Array.isArray(val)) {
+      clean[key] = val.map((item) => (typeof item === "object" && item !== null ? sanitizeForFirestore(item) : item));
+    } else if (val !== null && typeof val === "object" && !(val instanceof Date)) {
+      clean[key] = sanitizeForFirestore(val);
+    } else {
+      clean[key] = val;
+    }
+  });
+  return clean;
+}
+
 // Check and seed initial store data if Firestore is fresh
 export async function seedFirestoreIfEmpty(seedData) {
   try {
@@ -39,14 +58,14 @@ export async function seedFirestoreIfEmpty(seedData) {
       // Seed Products
       seedData.products.forEach((p) => {
         const ref = doc(db, "products", p.id.toString());
-        batch.set(ref, p);
+        batch.set(ref, sanitizeForFirestore(p));
       });
 
       // Seed Customers
       if (seedData.customers) {
         seedData.customers.forEach((c) => {
           const ref = doc(db, "customers", c.id.toString());
-          batch.set(ref, c);
+          batch.set(ref, sanitizeForFirestore(c));
         });
       }
 
@@ -54,7 +73,7 @@ export async function seedFirestoreIfEmpty(seedData) {
       if (seedData.khataLedger) {
         seedData.khataLedger.forEach((k) => {
           const ref = doc(db, "khataLedger", k.id.toString());
-          batch.set(ref, k);
+          batch.set(ref, sanitizeForFirestore(k));
         });
       }
 
@@ -62,26 +81,34 @@ export async function seedFirestoreIfEmpty(seedData) {
       if (seedData.sales) {
         seedData.sales.forEach((s) => {
           const ref = doc(db, "sales", s.id.toString());
-          batch.set(ref, s);
+          batch.set(ref, sanitizeForFirestore(s));
         });
       }
 
       // Seed Settings
       if (seedData.settings) {
         const settingsRef = doc(db, "metadata", "settings");
-        batch.set(settingsRef, seedData.settings);
+        batch.set(settingsRef, sanitizeForFirestore(seedData.settings));
       }
 
       // Seed Staff
       if (seedData.staff) {
         seedData.staff.forEach((st) => {
           const ref = doc(db, "staff", st.id.toString());
-          batch.set(ref, st);
+          batch.set(ref, sanitizeForFirestore(st));
+        });
+      }
+
+      // Seed Orders
+      if (seedData.orders && seedData.orders.length > 0) {
+        seedData.orders.forEach((ord) => {
+          const ref = doc(db, "orders", ord.id.toString());
+          batch.set(ref, sanitizeForFirestore(ord));
         });
       }
 
       await batch.commit();
-      console.log("Firestore successfully seeded with initial store catalog!");
+      console.log("Firestore successfully seeded with initial store catalog & orders!");
     } else {
       // If products exist, check if staff collection needs standalone seeding
       const staffSnap = await getDocs(collection(db, "staff"));
@@ -89,10 +116,22 @@ export async function seedFirestoreIfEmpty(seedData) {
         const staffBatch = writeBatch(db);
         seedData.staff.forEach((st) => {
           const ref = doc(db, "staff", st.id.toString());
-          staffBatch.set(ref, st);
+          staffBatch.set(ref, sanitizeForFirestore(st));
         });
         await staffBatch.commit();
         console.log("Firestore seeded with staff directory.");
+      }
+
+      // Check if orders collection needs standalone seeding
+      const ordersSnap = await getDocs(collection(db, "orders"));
+      if (ordersSnap.empty && seedData.orders && seedData.orders.length > 0) {
+        const orderBatch = writeBatch(db);
+        seedData.orders.forEach((ord) => {
+          const ref = doc(db, "orders", ord.id.toString());
+          orderBatch.set(ref, sanitizeForFirestore(ord));
+        });
+        await orderBatch.commit();
+        console.log("Firestore seeded with customer orders.");
       }
     }
   } catch (err) {
@@ -131,8 +170,10 @@ export function subscribeToSales(callback) {
 export function subscribeToOrders(callback) {
   try {
     return onSnapshot(collection(db, "orders"), (snapshot) => {
-      const items = snapshot.docs.map((d) => d.data());
-      callback(items);
+      if (!snapshot.empty) {
+        const items = snapshot.docs.map((d) => d.data());
+        callback(items);
+      }
     }, (err) => console.warn("Orders sync warning:", err));
   } catch (e) {
     return () => {};
@@ -233,17 +274,27 @@ export async function saveSaleToDb(sale, updatedProducts = []) {
 
 export async function saveOrderToDb(order) {
   try {
-    await setDoc(doc(db, "orders", order.id.toString()), order);
+    const cleanOrder = sanitizeForFirestore(order);
+    await setDoc(doc(db, "orders", order.id.toString()), cleanOrder, { merge: true });
+    console.log("Order saved to Cloud Firestore successfully:", order.id);
+    return true;
   } catch (err) {
     console.warn("Cloud save order failed, saved locally:", err);
+    return false;
   }
 }
 
 export async function updateOrderStatusInDb(orderId, newStatus) {
   try {
-    await updateDoc(doc(db, "orders", orderId.toString()), { status: newStatus });
+    await updateDoc(doc(db, "orders", orderId.toString()), { 
+      status: newStatus,
+      updatedAt: new Date().toISOString()
+    });
+    console.log(`Order ${orderId} status updated to ${newStatus} in Cloud Firestore`);
+    return true;
   } catch (err) {
     console.warn("Cloud update order status failed:", err);
+    return false;
   }
 }
 
