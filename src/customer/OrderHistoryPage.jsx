@@ -203,6 +203,33 @@ export default function OrderHistoryPage() {
     document.body.removeChild(link);
   };
 
+  // 100% Free Sharing via WhatsApp Click-to-Chat Web API
+  const handleShareWhatsApp = (order) => {
+    if (!order) return;
+    const rawPhone = (order.phone || "").replace(/[^0-9]/g, "");
+    const waPhone = rawPhone.length === 10 ? `91${rawPhone}` : rawPhone;
+    const itemsText = (order.items || [])
+      .map((it, idx) => `${idx + 1}. ${it.name} x ${it.qty} = ₹${(it.price * it.qty).toFixed(2)}`)
+      .join("\n");
+    const text = encodeURIComponent(
+      `🧾 *Krishna General Store - Order Receipt*\n` +
+      `Order ID: *#${order.id}*\n` +
+      `Date: ${formatDate(order.date)}\n` +
+      `Status: *${order.status}*\n` +
+      `Payment: *${order.paymentMethod || "UPI"}* (${order.paymentStatus || "Paid"})\n` +
+      (order.transactionId ? `Txn Ref: *${order.transactionId}*\n` : "") +
+      `--------------------------------\n` +
+      `${itemsText || "Grocery Items"}\n` +
+      `--------------------------------\n` +
+      `*Total: ₹${Number(order.total).toFixed(2)}*\n\n` +
+      `Delivery: ${formatAddress(order.shippingAddress || order.address)}\n` +
+      `Track live: https://store-for-all-c42fa.web.app/orders\n` +
+      `Thank you for shopping with us! 🙏`
+    );
+    const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, "_blank");
+  };
+
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-sans">
       <style>{`
@@ -607,17 +634,25 @@ export default function OrderHistoryPage() {
 
             {/* Action Bar */}
             <div className="p-4 bg-[#f8f9ff] border-t border-[#bfc7d2]/30 flex flex-wrap items-center justify-between gap-2 rounded-b-2xl">
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => handlePrintReceipt(selectedOrder)}
-                  className="px-3 py-1.5 bg-white border border-[#bfc7d2] hover:bg-gray-50 rounded-lg text-xs font-bold text-[#006194] flex items-center gap-1 transition-colors"
+                  className="px-3 py-1.5 bg-white border border-[#bfc7d2] hover:bg-gray-50 rounded-lg text-xs font-bold text-[#006194] flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[15px]">print</span>
                   Print Tax Bill
                 </button>
                 <button
+                  onClick={() => handleShareWhatsApp(selectedOrder)}
+                  className="px-3 py-1.5 bg-[#25d366] hover:bg-[#1ebd5a] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                  title="Send receipt to customer WhatsApp (100% Free)"
+                >
+                  <span className="material-symbols-outlined text-[15px]">chat</span>
+                  WhatsApp
+                </button>
+                <button
                   onClick={() => handleReorder(selectedOrder)}
-                  className="px-3 py-1.5 bg-[#006194] hover:bg-[#007bb9] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors"
+                  className="px-3 py-1.5 bg-[#006194] hover:bg-[#007bb9] text-white rounded-lg text-xs font-bold flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   <span className="material-symbols-outlined text-[15px]">replay</span>
                   Reorder

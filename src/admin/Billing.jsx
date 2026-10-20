@@ -353,7 +353,7 @@ export default function Billing() {
     setCustomer({ name: "Walk-in Customer", phone: "", points: 0, outstanding: "₹0", creditLimit: 5000 });
   };
 
-  // Manual SMS invoice sharing
+  // Manual SMS invoice sharing (100% Free - Logs in app + triggers free native device SMS)
   const handleSendInvoiceSMS = () => {
     if (!generatedInvoice) return;
     sendPosInvoiceSMS({
@@ -365,6 +365,14 @@ export default function Billing() {
       itemsCount: generatedInvoice.items.length
     });
     showToast(`SMS Bill dispatched to ${generatedInvoice.phone || "customer"}!`);
+
+    // Also trigger native device SMS protocol for 100% free cellular SMS from device
+    const rawPhone = (generatedInvoice.phone || "").replace(/[^0-9]/g, "");
+    if (rawPhone && rawPhone !== "NA" && rawPhone.length >= 10) {
+      const smsText = `Dear ${generatedInvoice.customer}, your bill #${generatedInvoice.id} of ₹${generatedInvoice.grandTotal.toFixed(2)} at ${settings?.storeName || "Krishna Store"} is confirmed (${generatedInvoice.paymentMode}). Thank you!`;
+      const smsUri = `sms:${rawPhone}?body=${encodeURIComponent(smsText)}`;
+      window.open(smsUri, "_self");
+    }
   };
 
   // WhatsApp invoice sharing

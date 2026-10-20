@@ -251,6 +251,18 @@ export default function KhataBook() {
     window.open(url, "_blank");
   };
 
+  // 100% Free Cellular SMS payment reminder via device SIM SMS
+  const handleOpenNativeSms = (cust) => {
+    const rawPhone = (cust.phone || "").replace(/[^0-9]/g, "");
+    const storeTitle = settings?.storeName || "Krishna General Store";
+    const dueAmount = cust.numericDue || getCustomerDue(cust);
+    const text = encodeURIComponent(
+      `Dear ${cust.name}, this is a payment reminder from ${storeTitle}. Your pending Khata balance is Rs. ${dueAmount.toLocaleString("en-IN")}. UPI ID: ${settings?.upiId || "krishnastore@upi"}. Thank you!`
+    );
+    const url = rawPhone ? `sms:${rawPhone}?body=${text}` : `sms:?body=${text}`;
+    window.open(url, "_self");
+  };
+
   const handleExportCSV = () => {
     const headers = ["Customer ID", "Name", "Phone", "Outstanding Due (₹)", "Credit Limit (₹)", "Tier", "Location"];
     const rows = filteredCustomers.map((c) => [
@@ -635,16 +647,26 @@ export default function KhataBook() {
                               <span className="material-symbols-outlined text-[18px]">remove_circle</span>
                             </button>
 
-                            {/* WhatsApp Reminder */}
+                            {/* WhatsApp & SMS Payment Reminders (100% Free) */}
                             {isDue && (
-                              <button
-                                onClick={() => handleOpenWhatsApp(cust)}
-                                className="px-2.5 py-1.5 bg-[#25d366]/10 text-[#128c7e] hover:bg-[#25d366]/20 text-xs font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer"
-                                title="Send WhatsApp Payment Reminder"
-                              >
-                                <span className="material-symbols-outlined text-[16px]">chat</span>
-                                Reminder
-                              </button>
+                              <div className="flex items-center gap-1">
+                                <button
+                                  onClick={() => handleOpenWhatsApp(cust)}
+                                  className="px-2 py-1.5 bg-[#25d366]/10 text-[#128c7e] hover:bg-[#25d366]/20 text-xs font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Send WhatsApp Payment Reminder (Free)"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">chat</span>
+                                  WhatsApp
+                                </button>
+                                <button
+                                  onClick={() => handleOpenNativeSms(cust)}
+                                  className="px-2 py-1.5 bg-[#006194]/10 text-[#006194] hover:bg-[#007bb9]/20 text-xs font-bold rounded-lg flex items-center gap-1 transition-all cursor-pointer"
+                                  title="Send Free Device SMS Reminder"
+                                >
+                                  <span className="material-symbols-outlined text-[15px]">sms</span>
+                                  SMS
+                                </button>
+                              </div>
                             )}
                           </div>
                         </td>
@@ -722,13 +744,24 @@ export default function KhataBook() {
                   Record Jama (Payment)
                 </button>
                 {selectedCustomer.numericDue > 0 && (
-                  <button
-                    onClick={() => handleOpenWhatsApp(selectedCustomer)}
-                    className="px-3 py-2 bg-[#25d366] text-white rounded-xl text-xs font-bold hover:bg-[#1ebd5a] transition-all flex items-center gap-1 shadow-sm cursor-pointer"
-                  >
-                    <span className="material-symbols-outlined text-[16px]">chat</span>
-                    WhatsApp
-                  </button>
+                  <>
+                    <button
+                      onClick={() => handleOpenWhatsApp(selectedCustomer)}
+                      className="px-3 py-2 bg-[#25d366] text-white rounded-xl text-xs font-bold hover:bg-[#1ebd5a] transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                      title="Send WhatsApp payment reminder (Free)"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">chat</span>
+                      WhatsApp
+                    </button>
+                    <button
+                      onClick={() => handleOpenNativeSms(selectedCustomer)}
+                      className="px-3 py-2 bg-[#006194] text-white rounded-xl text-xs font-bold hover:bg-[#007bb9] transition-all flex items-center gap-1 shadow-sm cursor-pointer"
+                      title="Send device SIM SMS reminder (Free)"
+                    >
+                      <span className="material-symbols-outlined text-[16px]">sms</span>
+                      SMS
+                    </button>
+                  </>
                 )}
               </div>
             </div>

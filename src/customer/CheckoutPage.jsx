@@ -204,6 +204,39 @@ export default function CheckoutPage() {
     }, 1400);
   };
 
+  // 100% Free Sharing via WhatsApp Click-to-Chat Web API
+  const handleShareOrderWhatsApp = () => {
+    if (!confirmedOrder) return;
+    const cleanPhone = (confirmedOrder.phone || "").replace(/[^0-9]/g, "");
+    const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+    const storeTitle = storeName || "Krishna General Store";
+    const text = encodeURIComponent(
+      `🛍️ *${storeTitle} - Order Confirmation*\n` +
+      `Order ID: *#${confirmedOrder.id}*\n` +
+      `Transaction Ref: *${confirmedOrder.transactionId || "N/A"}*\n` +
+      `Customer: *${confirmedOrder.customerName}*\n` +
+      `Delivery Address: ${confirmedOrder.shippingAddress}\n` +
+      `Total Amount: *${inr(confirmedOrder.total)}*\n` +
+      `Payment Mode: *${confirmedOrder.paymentMethod}* (${confirmedOrder.paymentStatus})\n\n` +
+      `Track your order live: https://store-for-all-c42fa.web.app/orders\n` +
+      `Thank you for shopping with us! 🙏`
+    );
+    const waUrl = waPhone ? `https://wa.me/${waPhone}?text=${text}` : `https://wa.me/?text=${text}`;
+    window.open(waUrl, "_blank");
+  };
+
+  // 100% Free Cellular SMS via Native Device URI Protocol (uses SIM SMS allowance)
+  const handleSendOrderNativeSms = () => {
+    if (!confirmedOrder) return;
+    const cleanPhone = (confirmedOrder.phone || "").replace(/[^0-9]/g, "");
+    const storeTitle = storeName || "Krishna General Store";
+    const text = encodeURIComponent(
+      `Dear ${confirmedOrder.customerName}, your order #${confirmedOrder.id} of ${inr(confirmedOrder.total)} is confirmed at ${storeTitle}! Track: https://store-for-all-c42fa.web.app/orders`
+    );
+    const smsUrl = cleanPhone ? `sms:${cleanPhone}?body=${text}` : `sms:?body=${text}`;
+    window.open(smsUrl, "_self");
+  };
+
   return (
     <div className="min-h-screen bg-[#f7f9fb] text-[#191c1e] font-sans">
       <style>{`
@@ -790,9 +823,31 @@ export default function CheckoutPage() {
                       <span className="text-gray-500">Payment Mode:</span>
                       <span className="font-semibold text-gray-700">{confirmedOrder.paymentMethod}</span>
                     </div>
-                    <div className="pt-2 border-t border-gray-200 flex items-center gap-1.5 text-[#006194] font-medium">
-                      <span className="material-symbols-outlined text-[16px]">sms</span>
-                      <span>Order Confirmation SMS sent to your phone!</span>
+                    <div className="pt-2 border-t border-gray-200 flex flex-wrap items-center justify-between gap-2 text-[#006194]">
+                      <span className="flex items-center gap-1.5 font-medium text-[11px]">
+                        <span className="material-symbols-outlined text-[16px]">sms</span>
+                        SMS confirmation logged
+                      </span>
+                      <div className="flex items-center gap-2">
+                        <button
+                          type="button"
+                          onClick={handleShareOrderWhatsApp}
+                          className="px-2.5 py-1 bg-[#25d366] hover:bg-[#1ebd5a] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          title="Send receipt to customer WhatsApp (100% Free)"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">chat</span>
+                          WhatsApp
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleSendOrderNativeSms}
+                          className="px-2.5 py-1 bg-[#006194] hover:bg-[#007bb9] text-white rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors cursor-pointer shadow-xs"
+                          title="Open phone SMS app with receipt (100% Free SIM SMS)"
+                        >
+                          <span className="material-symbols-outlined text-[13px]">send_to_mobile</span>
+                          Free SMS
+                        </button>
+                      </div>
                     </div>
                   </div>
                 )}
